@@ -51,6 +51,9 @@
   }
   .app-title { font-size: 20px; font-weight: 800; margin: 0 0 12px; display:flex; align-items:center; justify-content:space-between; }
   .app-title small { font-size: 11px; font-weight: 600; opacity: 0.75; background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 999px; }
+  .header-right { display:flex; align-items:center; gap: 7px; }
+  .lang-pill { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: #fff; font-family: inherit; cursor: pointer; }
+  .lang-pill:active { background: rgba(255,255,255,0.3); }
   .search { display:flex; align-items:center; gap:8px; padding: 10px 13px; border-radius: 12px; font-size: 14px; background: rgba(255,255,255,0.16); color: #fff; }
   .search input { background: transparent; border: none; outline: none; color: #fff; font-size: 14px; flex: 1; font-family: inherit; }
   .search input::placeholder { color: rgba(255,255,255,0.75); }
@@ -66,6 +69,20 @@
   .chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
   .datepicker-wrap { padding: 0 18px 10px; }
   .date-input { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 13px; font-family: inherit; }
+
+  /* ---------- age filter ---------- */
+  .age-filter { padding: 12px 18px 8px; }
+  .age-btn { font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 999px; background: #fff; color: var(--primary); border: 1px solid var(--line); cursor: pointer; font-family: inherit; }
+  .age-btn.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .age-btn.open { border-color: var(--primary); }
+  .age-panel { margin-top: 8px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .age-panel-chips { display:flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; min-height: 20px; }
+  .age-panel-hint { font-size: 12px; color: var(--muted); }
+  .age-chip { display:flex; align-items:center; gap: 5px; font-size: 12px; font-weight: 700; padding: 5px 6px 5px 10px; border-radius: 999px; background: var(--kids-bg); color: var(--kids); }
+  .age-chip button { border: none; background: none; color: inherit; font-size: 13px; cursor: pointer; padding: 0 2px; line-height: 1; }
+  .age-panel-add { display:flex; gap: 8px; }
+  .age-panel-add input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); font-size: 13px; font-family: inherit; }
+  .age-panel-add button { flex: none; padding: 9px 14px; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-weight: 700; font-size: 12.5px; font-family: inherit; cursor: pointer; }
 
   /* ---------- list ---------- */
   .content { flex: 1; overflow-y: auto; padding-bottom: 12px; -webkit-overflow-scrolling: touch; }
@@ -128,6 +145,10 @@
   }
   .install-banner.show { display: flex; }
   .install-banner button { background: rgba(255,255,255,0.25); border: none; color: #fff; font-weight: 700; font-size: 11.5px; padding: 6px 10px; border-radius: 8px; font-family: inherit; cursor: pointer; }
+
+  .reminder-banner { margin: 10px 18px 0; background: var(--kids-bg); color: var(--kids); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; line-height: 1.4; display: none; align-items: center; gap: 8px; font-weight: 600; }
+  .reminder-banner.show { display: flex; }
+  .badge-soon { font-size: 9.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--danger); color: #fff; }
 </style>
 </head>
 <body>
@@ -136,7 +157,10 @@
   <div class="app-header">
     <div class="app-title">
       <span>Porto em Família</span>
-      <small id="weekLabel">2–15 anos</small>
+      <div class="header-right">
+        <small id="weekLabel">2–15 anos</small>
+        <button class="lang-pill" id="headerLangBtn">PT</button>
+      </div>
     </div>
     <div class="search">
       <span>⌕</span>
@@ -149,8 +173,10 @@
     <button id="installBtn">Instalar</button>
   </div>
 
+  <div class="reminder-banner" id="reminderBanner"></div>
+
   <div class="filterbar" id="filterBar">
-    <div class="seg" id="audienceSeg"></div>
+    <div class="age-filter" id="ageFilter"></div>
     <div class="chiprow" id="dateRow"></div>
     <div class="datepicker-wrap" id="datePickerWrap" style="display:none;">
       <input type="date" id="customDateInput" class="date-input" />
@@ -176,56 +202,47 @@
 <script>
 /* ===================== DATA ===================== */
 const CATEGORIES = [
-  { key: 'arte',       label: 'Arte',       label_en: 'Art & Craft', icon: '🎨' },
-  { key: 'agua',       label: 'Água',       label_en: 'Water',       icon: '💧' },
-  { key: 'ciencia',    label: 'Ciência',    label_en: 'Science',     icon: '🔬' },
-  { key: 'musica',     label: 'Música',     label_en: 'Music',       icon: '🎵' },
-  { key: 'ar-livre',   label: 'Ar livre',   label_en: 'Outdoors',    icon: '🌳' },
-  { key: 'leitura',    label: 'Leitura',    label_en: 'Reading',     icon: '📖' },
-  { key: 'animais',    label: 'Animais',    label_en: 'Animals',     icon: '🐾' },
-  { key: 'comunidade', label: 'Comunidade', label_en: 'Community',   icon: '🎉' },
-  { key: 'ativo',      label: 'Ativo',      label_en: 'Active play', icon: '🤸' },
-  { key: 'teatro',     label: 'Teatro',     label_en: 'Theatre & Performance', icon: '🎭' },
-  { key: 'desporto',   label: 'Desporto',   label_en: 'Sports',      icon: '⚽' },
-  { key: 'campos-ferias', label: 'Campos de Férias', label_en: 'Holiday Camps', icon: '🏕️' },
-  { key: 'parques',     label: 'Parques Infantis', label_en: 'Playgrounds', icon: '🛝' },
+  { key: 'artes',     label: 'Artes',     label_en: 'Arts',      icon: '🎨' },
+  { key: 'movimento', label: 'Movimento', label_en: 'Movement',  icon: '🤸' },
+  { key: 'oficinas',  label: 'Oficinas',  label_en: 'Workshops', icon: '🛠️' },
+  { key: 'outro',     label: 'Outro',     label_en: 'Other',     icon: '✨' },
 ];
 function catLabel(c) { return state.lang === 'en' ? c.label_en : c.label; }
 
 const EVENTS = [
-  { id: 1, title: 'Hora do Conto — O Cavaleiro Corujinha', title_en: 'Storytime — The Little Owl Knight', venue: 'Livraria Bertrand, Rua de Santa Catarina', when: 'Sáb 15 ago, 16:00', when_en: 'Sat 15 Aug, 16:00', date: '2026-08-15', cat: 'leitura', icon: '📖', audience: 'kids', ages: '2–10 anos', ages_en: 'Ages 2–10', desc: 'Sessão de contos para crianças na Livraria Bertrand — uma hora tranquila de histórias em família.', desc_en: 'A children\'s storytelling session at Livraria Bertrand — a calm hour of stories for the whole family.', source: null },
-  { id: 2, title: 'CSI na ponta dos dedos', title_en: 'CSI at Your Fingertips', venue: 'Parque Biológico de Gaia, Avintes', when: 'Sex 14 ago, 10:00', when_en: 'Fri 14 Aug, 10:00', date: '2026-08-14', cat: 'ciencia', icon: '🔬', audience: 'kids', ages: '6–12 anos', ages_en: 'Ages 6–12', desc: 'Atividade "Ciência Viva no Verão": as crianças tornam-se detetives e aprendem técnicas simples de recolha de impressões digitais.', desc_en: 'A "Ciência Viva no Verão" activity: kids become detectives and learn simple fingerprint-collection techniques.', source: 'https://www.cienciaviva.pt/verao/' },
-  { id: 3, title: 'Sandra Cristina — Fado', title_en: 'Sandra Cristina — Fado', venue: 'Casa da Música, Sala 2', when: 'Sex 14 ago, 18:00', when_en: 'Fri 14 Aug, 18:00', date: '2026-08-14', cat: 'musica', icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Concerto de fado. Bilhete €14.', desc_en: 'Fado concert. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
-  { id: 4, title: 'Pintura em Azulejo', title_en: 'Tile Painting', venue: 'doBarro', when: 'Seg 17 ago', when_en: 'Mon 17 Aug', date: '2026-08-17', cat: 'arte', icon: '🏺', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Workshop de pintura de azulejos para crianças, num atelier independente do Porto.', desc_en: 'A tile-painting workshop for kids, at an independent atelier in Porto.', source: null },
-  { id: 5, title: 'Zine — Histórias que se Desdobram', title_en: 'Zine — Unfolding Stories', venue: 'doBarro', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'arte', icon: '📔', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Atividade de criação de pequenos livros ilustrados ("zines") para crianças.', desc_en: 'A zine-making activity (small illustrated booklets) for kids.', source: null },
-  { id: 6, title: 'Laboratório de Design, Criação e Experimentação', title_en: 'Design, Creation & Experimentation Lab', venue: 'ACASO, atelier criativo', when: '14–22 ago (várias turmas)', when_en: '14–22 Aug (multiple sessions)', dateStart: '2026-08-14', dateEnd: '2026-08-22', cat: 'arte', icon: '✂️', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Oficinas de design e experimentação criativa, em turmas ao longo da semana.', desc_en: 'Creative design and experimentation workshops, running in sessions through the week.', source: null },
-  { id: 7, title: '"Dominguinhos" com sabor a verão', title_en: 'Summer-Flavoured "Dominguinhos"', venue: 'MAR Shopping, Matosinhos', when: 'Dom 16 ago', when_en: 'Sun 16 Aug', date: '2026-08-16', cat: 'ciencia', icon: '☀️', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Tarde de "domingos de verão" com ciência, histórias e imaginação para crianças.', desc_en: 'A "summer Sundays" afternoon of science, stories and imagination for kids.', source: null },
-  { id: 8, title: 'Eucaliptos em Aguarela', title_en: 'Eucalyptus in Watercolour', venue: 'Parque de São Roque', when: 'Dom 16 ago, 16:00', when_en: 'Sun 16 Aug, 16:00', date: '2026-08-16', cat: 'arte', icon: '🎨', audience: 'kids', ages: 'Todas as idades', ages_en: 'All ages', desc: 'Workshop de aguarela ao ar livre, aberto a todas as idades.', desc_en: 'An outdoor watercolour workshop, open to all ages.', source: null },
-  { id: 9, title: 'Roda de Samba', title_en: 'Samba Circle', venue: 'Clover by Trevo', when: 'Dom 16 ago, 17:00', when_en: 'Sun 16 Aug, 17:00', date: '2026-08-16', cat: 'musica', icon: '🥁', audience: 'kids', ages: 'Todas as idades', ages_en: 'All ages', desc: 'Música e dança brasileira ao vivo, aberto a todas as idades.', desc_en: 'Live Brazilian music and dance, open to all ages.', source: null },
-  { id: 10, title: 'Touriga', title_en: 'Touriga', venue: 'Casa da Música, Sala 2', when: 'Ter 18 ago, 18:00', when_en: 'Tue 18 Aug, 18:00', date: '2026-08-18', cat: 'musica', icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Música tradicional portuguesa contemporânea. Bilhete €14.', desc_en: 'Contemporary traditional Portuguese music. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
-  { id: 11, title: 'Pedro Ferreira — Fado', title_en: 'Pedro Ferreira — Fado', venue: 'Casa da Música, Sala 2', when: 'Qua 19 ago, 18:00', when_en: 'Wed 19 Aug, 18:00', date: '2026-08-19', cat: 'musica', icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Concerto de fado. Bilhete €14.', desc_en: 'Fado concert. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
-  { id: 12, title: 'Visita ao Centro Histórico', title_en: 'Historic Centre Walking Tour', venue: 'Centro Histórico do Porto', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'comunidade', icon: '🏛️', audience: 'adults', ages: null, ages_en: null, desc: '"Ciclo de Visitas ao Centro Histórico" — tour gratuito.', desc_en: 'A free "Historic Centre Tour Series" walking tour.', source: null },
-  { id: 13, title: 'Algas, Têxteis e Ecologia', title_en: 'Algae, Textiles & Ecology', venue: 'MANYWHERE Gallery', when: 'Sáb 15 ago, 10:00', when_en: 'Sat 15 Aug, 10:00', date: '2026-08-15', cat: 'arte', icon: '🧶', audience: 'adults', ages: null, ages_en: null, desc: 'Workshop de criação de fio a partir de algas.', desc_en: 'A workshop on making yarn from seaweed.', source: null },
-  { id: 14, title: 'Booze n\' Brains Brunch', title_en: 'Booze n\' Brains Brunch', venue: 'Look Sharp Café', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'comunidade', icon: '🥐', audience: 'adults', ages: null, ages_en: null, desc: 'Brunch com trivia para adultos.', desc_en: 'Brunch with trivia, for adults.', source: null },
-  { id: 15, title: 'Zoo de Santo Inácio', title_en: 'Santo Inácio Zoo', venue: 'Avintes, Vila Nova de Gaia', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'animais', icon: '🦁', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Zoo com bilhetes sem filas disponíveis — atividades focadas em animais.', desc_en: 'A zoo with skip-the-line tickets available — animal-focused activities.', source: 'https://www.zoosantoinacio.com/' },
-  { id: 16, title: 'SEA LIFE Porto', title_en: 'SEA LIFE Porto', venue: 'Castelo do Queijo', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'animais', icon: '🐠', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Aquário com experiências sobre vida marinha.', desc_en: 'An aquarium with marine-life experiences.', source: null },
-  { id: 17, title: 'Aulas de Natação — bebés e crianças', title_en: 'Swimming Lessons — Babies & Kids', venue: 'Piscina Municipal da Constituição (Ágora)', when: 'Seg–Sex, várias turmas', when_en: 'Mon–Fri, multiple sessions', ongoing: true, cat: 'agua', icon: '🏊', audience: 'kids', ages: 'Bebés a 12 anos', ages_en: 'Babies to 12', desc: 'Aulas de natação municipais para bebés e crianças — verificar horários e inscrições na rede municipal de piscinas.', desc_en: 'Municipal swimming lessons for babies and kids — check schedules and enrolment with the municipal pool network.', source: 'https://desporto.agoraporto.pt/' },
-  { id: 18, title: 'Playtime — Knock-Knock Family Club', title_en: 'Playtime — Knock-Knock Family Club', venue: 'Rua Duque de Saldanha 186, Bonfim', when: 'Semanal (consultar agenda)', when_en: 'Weekly (check schedule)', ongoing: true, cat: 'ar-livre', icon: '🧸', audience: 'kids', ages: '0–6 anos', ages_en: 'Ages 0–6', desc: 'Sessões de brincadeira livre para bebés e crianças pequenas, num espaço familiar independente em Bonfim.', desc_en: 'Free-play sessions for babies and young children, at an independent family space in Bonfim.', source: 'https://www.knock-knock.pt/' },
-  { id: 19, title: 'Yoga para Crianças', title_en: 'Kids\' Yoga', venue: 'Quinta do Mitra — Associação Terra Solta, Campanhã', when: 'Sáb (consultar agenda)', when_en: 'Sat (check schedule)', ongoing: true, cat: 'ar-livre', icon: '🧘', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Sessão de yoga para crianças e jovens, numa quinta pedagógica urbana independente.', desc_en: 'A yoga session for children and teens, at an independent urban pedagogical farm.', source: 'https://terrasolta.org/' },
-  { id: 20, title: 'Jumpers Trampoline Park', title_en: 'Jumpers Trampoline Park', venue: 'Rua Engenheiro Ferreira Dias 874, Porto', when: 'Todos os dias (ver horário)', when_en: 'Every day (check hours)', ongoing: true, cat: 'ativo', icon: '🤾', audience: 'kids', ages: 'Zona de bebés + família', ages_en: 'Baby zone + family', desc: 'Parque de trampolins e aventura com Ninja Challenge, arena de futebol, parede interativa, airbag, escalada (The Rock) e uma Toddler Zone para os mais pequenos. Também organiza festas de aniversário.', desc_en: 'A trampoline and adventure park with a Ninja Challenge, football arena, interactive wall, airbag, climbing (The Rock) and a Toddler Zone for the youngest kids. Also hosts birthday parties.', source: 'https://www.jumpers.pt/en' },
-  { id: 21, title: 'JumpYard Matosinhos', title_en: 'JumpYard Matosinhos', venue: 'Rua Abade Mondego 241, Perafita, Matosinhos', when: 'Todos os dias (ver horário)', when_en: 'Every day (check hours)', ongoing: true, cat: 'ativo', icon: '🤸', audience: 'kids', ages: 'Todas as idades + KidsZone', ages_en: 'All ages + KidsZone', desc: 'Parque de trampolins com SkyRider, Clip \'N Climb, percurso Ninja, Jump Tower e uma KidsZone de motricidade para crianças pequenas. Também organiza festas de aniversário e grupos escolares.', desc_en: 'A trampoline park with SkyRider, Clip \'N Climb, a Ninja course, Jump Tower and a motor-skills KidsZone for younger children. Also hosts birthday parties and school groups.', source: 'https://jumpyard.pt/matosinhos/pagina-inicial/' },
-  { id: 22, title: 'Feira do Livro do Porto 2026', title_en: 'Porto Book Fair 2026', venue: 'Jardins do Palácio de Cristal', when: '21 ago–6 set', when_en: '21 Aug–6 Sep', dateStart: '2026-08-21', dateEnd: '2026-09-06', cat: 'leitura', icon: '📚', audience: 'kids', ages: 'A partir dos 18 meses', ages_en: 'From 18 months', desc: '83 sessões e 112 horas de atividades para bebés, crianças, jovens e famílias — teatro, música, marionetas, oficinas criativas, hora do conto e jogos tradicionais. Entrada gratuita.', desc_en: '83 sessions and 112 hours of activities for babies, children, teens and families — theatre, music, puppet shows, creative workshops, storytime and traditional games. Free entry.', source: 'https://agendaculturalporto.org/eventos/feira-do-livro-do-porto-2026-regressa-aos-jardins-do-palacio-de-cristal-com-homenagem-a-ines-lourenco/' },
-  { id: 23, title: 'Sábados a Contar', title_en: 'Storytelling Saturdays', venue: 'Biblioteca Municipal Almeida Garrett (Sala Infantil)', when: 'Sáb (consultar agenda)', when_en: 'Sat (check schedule)', ongoing: true, cat: 'leitura', icon: '📖', audience: 'kids', ages: '3–6 anos', ages_en: 'Ages 3–6', desc: 'Hora do conto seguida de uma oficina criativa para pequenos leitores e as suas famílias, nas Bibliotecas Municipais do Porto.', desc_en: 'A storytime hour followed by a creative workshop for young readers and their families, at Porto\'s municipal libraries.', source: 'https://www.agenda-porto.pt/en/evento/sabados-a-contar-1769783410450/' },
-  { id: 24, title: 'Cerâmica sensorial para bebés', title_en: 'Sensory Ceramics for Babies', venue: 'Oficina Josefina, Av. Camilo 224', when: 'Consultar agenda', when_en: 'Check schedule', ongoing: true, cat: 'arte', icon: '🏺', audience: 'kids', ages: '18–36 meses', ages_en: 'Ages 18–36 months', desc: 'Workshop sensorial de cerâmica para bebés e pequenos, num atelier independente de artes plásticas no Porto.', desc_en: 'A sensory ceramics workshop for babies and toddlers, at an independent visual-arts studio in Porto.', source: 'https://www.oficinajosefina.com/' },
-  { id: 25, title: 'PlayLab Porto — sessões de brincar', title_en: 'PlayLab Porto — Play Sessions', venue: 'PlayLab Porto, R. de Alves Redol 386, Bonfim', when: 'Fins de semana', when_en: 'Weekends', ongoing: true, cat: 'ativo', icon: '🧩', audience: 'kids', ages: '0–6 anos', ages_en: 'Ages 0–6', desc: 'Espaço independente de aprendizagem pela brincadeira: sessões de messy play, yoga bebé-mãe e grupos de brincar com histórias e música. Pago, por sessão.', desc_en: 'An independent play-based learning space: messy-play sessions, mother-baby yoga, and play groups combining stories and music. Paid, per session.', source: 'https://sites.google.com/view/playlabporto/home' },
-  { id: 26, title: 'Oficinas de Artes na Casa-Museu Teixeira Lopes', title_en: 'Art Workshops at Casa-Museu Teixeira Lopes', venue: 'Casa-Museu Teixeira Lopes, Vila Nova de Gaia', when: 'Consultar agenda', when_en: 'Check schedule', ongoing: true, cat: 'arte', icon: '🖼️', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Oficinas artísticas gratuitas para crianças, num pequeno museu-casa em Vila Nova de Gaia.', desc_en: 'Free artistic workshops for children, at a small house-museum in Vila Nova de Gaia.', source: 'https://agendaculturalporto.org/workshops-no-porto/' },
-  { id: 27, title: 'Parque Infantil da Quinta do Covelo', title_en: 'Quinta do Covelo Playground', venue: 'Parque da Quinta do Covelo, R. de Bolama', when: 'Todos os dias, 7h–20h', when_en: 'Every day, 7am–8pm', ongoing: true, cat: 'parques', icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Um dos maiores parques infantis do Porto, dentro de jardins amplos, com café e casas de banho por perto. Entrada gratuita.', desc_en: 'One of Porto\'s largest playgrounds, set inside spacious gardens, with a café and restrooms nearby. Free entry.', source: null },
-  { id: 28, title: 'Parque Infantil dos Jardins do Palácio de Cristal', title_en: 'Crystal Palace Gardens Playground', venue: 'Jardins do Palácio de Cristal', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'parques', icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil dentro dos Jardins do Palácio de Cristal, com pavões e patos para observar e zonas de sombra — mesmo ao lado da Biblioteca Almeida Garrett. Entrada gratuita.', desc_en: 'A playground inside the Crystal Palace Gardens, with peacocks and ducks to watch and shaded rest areas — right next to the Almeida Garrett library. Free entry.', source: null },
-  { id: 29, title: 'Parque Infantil do Parque Oriental da Cidade', title_en: 'Parque Oriental da Cidade Playground', venue: 'Parque Oriental da Cidade, Campanhã', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'parques', icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Um parque infantil muito amplo dentro de jardins tranquilos em Campanhã, com café e casas de banho perto. Entrada gratuita.', desc_en: 'A very spacious playground inside quiet gardens in Campanhã, with a café and restrooms nearby. Free entry.', source: null },
-  { id: 30, title: 'Parque Infantil da Praia do Homem do Leme', title_en: 'Homem do Leme Beach Playground', venue: 'Av. de Montevideu 88, Porto', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'parques', icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil junto à frente marítima do Porto, boa paragem para combinar com um passeio pela marginal. Entrada gratuita.', desc_en: 'A playground right on Porto\'s seafront, a good stop to combine with a walk along the promenade. Free entry.', source: null },
-  { id: 31, title: 'Parque Infantil do Jardim de Belém', title_en: 'Jardim de Belém Playground', venue: 'R. Carnide 86, Porto', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'parques', icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil de bairro, uma opção tranquila e menos concorrida para brincar ao ar livre. Entrada gratuita.', desc_en: 'A neighbourhood playground — a quieter, less busy option for outdoor play. Free entry.', source: null },
-  { id: 32, title: 'The North Wall — Escalada', title_en: 'The North Wall — Climbing', venue: 'Rua do Tronco 375, Núcleo Empresarial Sarcol, Matosinhos', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'desporto', icon: '🧗', audience: 'kids', ages: 'Família (zona de boulder para os mais pequenos com escorrega)', ages_en: 'Family (dedicated boulder area for the youngest, with a slide)', desc: 'Ginásio de escalada indoor com uma zona de boulder própria para os mais pequenos, incluindo um escorrega. Também tem escalada para adultos.', desc_en: 'An indoor climbing gym with its own boulder area for the youngest kids, including a slide. Also offers adult climbing.', source: 'https://thenorthwall.pt/' },
-  { id: 33, title: 'São Rock — Escalada Indoor', title_en: 'São Rock — Indoor Climbing', venue: 'Rua de Godim 312, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'desporto', icon: '🧗', audience: 'kids', ages: 'Dos mais pequenos aos adultos', ages_en: 'From young kids to adults', desc: 'Espaço de escalada indoor independente, aberto a todas as idades — dos mais pequenos aos mais graúdos.', desc_en: 'An independent indoor climbing space, open to all ages — from young kids to grown-ups.', source: 'http://saorockclimbing.com/' },
+  { id: 1, title: 'Hora do Conto — O Cavaleiro Corujinha', title_en: 'Storytime — The Little Owl Knight', venue: 'Livraria Bertrand, Rua de Santa Catarina', when: 'Sáb 15 ago, 16:00', when_en: 'Sat 15 Aug, 16:00', date: '2026-08-15', cat: 'oficinas', ageMin: 2, ageMax: 10, icon: '📖', audience: 'kids', ages: '2–10 anos', ages_en: 'Ages 2–10', desc: 'Sessão de contos para crianças na Livraria Bertrand — uma hora tranquila de histórias em família.', desc_en: 'A children\'s storytelling session at Livraria Bertrand — a calm hour of stories for the whole family.', source: null },
+  { id: 2, title: 'CSI na ponta dos dedos', title_en: 'CSI at Your Fingertips', venue: 'Parque Biológico de Gaia, Avintes', when: 'Sex 14 ago, 10:00', when_en: 'Fri 14 Aug, 10:00', date: '2026-08-14', cat: 'oficinas', ageMin: 6, ageMax: 12, icon: '🔬', audience: 'kids', ages: '6–12 anos', ages_en: 'Ages 6–12', desc: 'Atividade "Ciência Viva no Verão": as crianças tornam-se detetives e aprendem técnicas simples de recolha de impressões digitais.', desc_en: 'A "Ciência Viva no Verão" activity: kids become detectives and learn simple fingerprint-collection techniques.', source: 'https://www.cienciaviva.pt/verao/' },
+  { id: 3, title: 'Sandra Cristina — Fado', title_en: 'Sandra Cristina — Fado', venue: 'Casa da Música, Sala 2', when: 'Sex 14 ago, 18:00', when_en: 'Fri 14 Aug, 18:00', date: '2026-08-14', cat: 'artes', ageMin: 18, ageMax: null, icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Concerto de fado. Bilhete €14.', desc_en: 'Fado concert. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
+  { id: 4, title: 'Pintura em Azulejo', title_en: 'Tile Painting', venue: 'doBarro', when: 'Seg 17 ago', when_en: 'Mon 17 Aug', date: '2026-08-17', cat: 'artes', ageMin: 0, ageMax: null, icon: '🏺', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Workshop de pintura de azulejos para crianças, num atelier independente do Porto.', desc_en: 'A tile-painting workshop for kids, at an independent atelier in Porto.', source: null },
+  { id: 5, title: 'Zine — Histórias que se Desdobram', title_en: 'Zine — Unfolding Stories', venue: 'doBarro', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'artes', ageMin: 0, ageMax: null, icon: '📔', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Atividade de criação de pequenos livros ilustrados ("zines") para crianças.', desc_en: 'A zine-making activity (small illustrated booklets) for kids.', source: null },
+  { id: 6, title: 'Laboratório de Design, Criação e Experimentação', title_en: 'Design, Creation & Experimentation Lab', venue: 'ACASO, atelier criativo', when: '14–22 ago (várias turmas)', when_en: '14–22 Aug (multiple sessions)', dateStart: '2026-08-14', dateEnd: '2026-08-22', cat: 'artes', ageMin: 3, ageMax: 15, icon: '✂️', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Oficinas de design e experimentação criativa, em turmas ao longo da semana.', desc_en: 'Creative design and experimentation workshops, running in sessions through the week.', source: null },
+  { id: 7, title: '"Dominguinhos" com sabor a verão', title_en: 'Summer-Flavoured "Dominguinhos"', venue: 'MAR Shopping, Matosinhos', when: 'Dom 16 ago', when_en: 'Sun 16 Aug', date: '2026-08-16', cat: 'oficinas', ageMin: 0, ageMax: null, icon: '☀️', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Tarde de "domingos de verão" com ciência, histórias e imaginação para crianças.', desc_en: 'A "summer Sundays" afternoon of science, stories and imagination for kids.', source: null },
+  { id: 8, title: 'Eucaliptos em Aguarela', title_en: 'Eucalyptus in Watercolour', venue: 'Parque de São Roque', when: 'Dom 16 ago, 16:00', when_en: 'Sun 16 Aug, 16:00', date: '2026-08-16', cat: 'artes', ageMin: 0, ageMax: null, icon: '🎨', audience: 'kids', ages: 'Todas as idades', ages_en: 'All ages', desc: 'Workshop de aguarela ao ar livre, aberto a todas as idades.', desc_en: 'An outdoor watercolour workshop, open to all ages.', source: null },
+  { id: 9, title: 'Roda de Samba', title_en: 'Samba Circle', venue: 'Clover by Trevo', when: 'Dom 16 ago, 17:00', when_en: 'Sun 16 Aug, 17:00', date: '2026-08-16', cat: 'artes', ageMin: 0, ageMax: null, icon: '🥁', audience: 'kids', ages: 'Todas as idades', ages_en: 'All ages', desc: 'Música e dança brasileira ao vivo, aberto a todas as idades.', desc_en: 'Live Brazilian music and dance, open to all ages.', source: null },
+  { id: 10, title: 'Touriga', title_en: 'Touriga', venue: 'Casa da Música, Sala 2', when: 'Ter 18 ago, 18:00', when_en: 'Tue 18 Aug, 18:00', date: '2026-08-18', cat: 'artes', ageMin: 18, ageMax: null, icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Música tradicional portuguesa contemporânea. Bilhete €14.', desc_en: 'Contemporary traditional Portuguese music. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
+  { id: 11, title: 'Pedro Ferreira — Fado', title_en: 'Pedro Ferreira — Fado', venue: 'Casa da Música, Sala 2', when: 'Qua 19 ago, 18:00', when_en: 'Wed 19 Aug, 18:00', date: '2026-08-19', cat: 'artes', ageMin: 18, ageMax: null, icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Concerto de fado. Bilhete €14.', desc_en: 'Fado concert. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
+  { id: 12, title: 'Visita ao Centro Histórico', title_en: 'Historic Centre Walking Tour', venue: 'Centro Histórico do Porto', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'outro', ageMin: 18, ageMax: null, icon: '🏛️', audience: 'adults', ages: null, ages_en: null, desc: '"Ciclo de Visitas ao Centro Histórico" — tour gratuito.', desc_en: 'A free "Historic Centre Tour Series" walking tour.', source: null },
+  { id: 13, title: 'Algas, Têxteis e Ecologia', title_en: 'Algae, Textiles & Ecology', venue: 'MANYWHERE Gallery', when: 'Sáb 15 ago, 10:00', when_en: 'Sat 15 Aug, 10:00', date: '2026-08-15', cat: 'artes', ageMin: 18, ageMax: null, icon: '🧶', audience: 'adults', ages: null, ages_en: null, desc: 'Workshop de criação de fio a partir de algas.', desc_en: 'A workshop on making yarn from seaweed.', source: null },
+  { id: 14, title: 'Booze n\' Brains Brunch', title_en: 'Booze n\' Brains Brunch', venue: 'Look Sharp Café', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'outro', ageMin: 18, ageMax: null, icon: '🥐', audience: 'adults', ages: null, ages_en: null, desc: 'Brunch com trivia para adultos.', desc_en: 'Brunch with trivia, for adults.', source: null },
+  { id: 15, title: 'Zoo de Santo Inácio', title_en: 'Santo Inácio Zoo', venue: 'Avintes, Vila Nova de Gaia', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, icon: '🦁', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Zoo com bilhetes sem filas disponíveis — atividades focadas em animais.', desc_en: 'A zoo with skip-the-line tickets available — animal-focused activities.', source: 'https://www.zoosantoinacio.com/' },
+  { id: 16, title: 'SEA LIFE Porto', title_en: 'SEA LIFE Porto', venue: 'Castelo do Queijo', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, icon: '🐠', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Aquário com experiências sobre vida marinha.', desc_en: 'An aquarium with marine-life experiences.', source: 'https://www.visitsealife.com/porto/' },
+  { id: 17, title: 'Aulas de Natação — bebés e crianças', title_en: 'Swimming Lessons — Babies & Kids', venue: 'Piscina Municipal da Constituição (Ágora)', when: 'Seg–Sex, várias turmas', when_en: 'Mon–Fri, multiple sessions', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: 12, icon: '🏊', audience: 'kids', ages: 'Bebés a 12 anos', ages_en: 'Babies to 12', desc: 'Aulas de natação municipais para bebés e crianças — verificar horários e inscrições na rede municipal de piscinas.', desc_en: 'Municipal swimming lessons for babies and kids — check schedules and enrolment with the municipal pool network.', source: 'https://desporto.agoraporto.pt/' },
+  { id: 18, title: 'Playtime — Knock-Knock Family Club', title_en: 'Playtime — Knock-Knock Family Club', venue: 'Rua Duque de Saldanha 186, Bonfim', when: 'Semanal (consultar agenda)', when_en: 'Weekly (check schedule)', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: 6, icon: '🧸', audience: 'kids', ages: '0–6 anos', ages_en: 'Ages 0–6', desc: 'Sessões de brincadeira livre para bebés e crianças pequenas, num espaço familiar independente em Bonfim.', desc_en: 'Free-play sessions for babies and young children, at an independent family space in Bonfim.', source: 'https://www.knock-knock.pt/' },
+  { id: 19, title: 'Yoga para Crianças', title_en: 'Kids\' Yoga', venue: 'Quinta do Mitra — Associação Terra Solta, Campanhã', when: 'Sáb (consultar agenda)', when_en: 'Sat (check schedule)', ongoing: true, cat: 'movimento', ageMin: 3, ageMax: 15, icon: '🧘', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Sessão de yoga para crianças e jovens, numa quinta pedagógica urbana independente. Confirma sempre o horário atual diretamente com a associação antes de ir.', desc_en: 'A yoga session for children and teens, at an independent urban pedagogical farm. Always confirm the current schedule directly with the association before going.', source: 'https://terrasolta.org/' },
+  { id: 20, title: 'Jumpers Trampoline Park', title_en: 'Jumpers Trampoline Park', venue: 'Rua Engenheiro Ferreira Dias 874, Porto', when: 'Todos os dias (ver horário)', when_en: 'Every day (check hours)', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, icon: '🤾', audience: 'kids', ages: 'Zona de bebés + família', ages_en: 'Baby zone + family', desc: 'Parque de trampolins e aventura com Ninja Challenge, arena de futebol, parede interativa, airbag, escalada (The Rock) e uma Toddler Zone para os mais pequenos. Também organiza festas de aniversário.', desc_en: 'A trampoline and adventure park with a Ninja Challenge, football arena, interactive wall, airbag, climbing (The Rock) and a Toddler Zone for the youngest kids. Also hosts birthday parties.', source: 'https://www.jumpers.pt/en' },
+  { id: 21, title: 'JumpYard Matosinhos', title_en: 'JumpYard Matosinhos', venue: 'Rua Abade Mondego 241, Perafita, Matosinhos', when: 'Todos os dias (ver horário)', when_en: 'Every day (check hours)', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, icon: '🤸', audience: 'kids', ages: 'Todas as idades + KidsZone', ages_en: 'All ages + KidsZone', desc: 'Parque de trampolins com SkyRider, Clip \'N Climb, percurso Ninja, Jump Tower e uma KidsZone de motricidade para crianças pequenas. Também organiza festas de aniversário e grupos escolares.', desc_en: 'A trampoline park with SkyRider, Clip \'N Climb, a Ninja course, Jump Tower and a motor-skills KidsZone for younger children. Also hosts birthday parties and school groups.', source: 'https://jumpyard.pt/matosinhos/pagina-inicial/' },
+  { id: 22, title: 'Feira do Livro do Porto 2026', title_en: 'Porto Book Fair 2026', venue: 'Jardins do Palácio de Cristal', when: '21 ago–6 set', when_en: '21 Aug–6 Sep', dateStart: '2026-08-21', dateEnd: '2026-09-06', cat: 'oficinas', ageMin: 1.5, ageMax: null, icon: '📚', audience: 'kids', ages: 'A partir dos 18 meses', ages_en: 'From 18 months', desc: '83 sessões e 112 horas de atividades para bebés, crianças, jovens e famílias — teatro, música, marionetas, oficinas criativas, hora do conto e jogos tradicionais. Entrada gratuita.', desc_en: '83 sessions and 112 hours of activities for babies, children, teens and families — theatre, music, puppet shows, creative workshops, storytime and traditional games. Free entry.', source: 'https://agendaculturalporto.org/eventos/feira-do-livro-do-porto-2026-regressa-aos-jardins-do-palacio-de-cristal-com-homenagem-a-ines-lourenco/' },
+  { id: 23, title: 'Sábados a Contar', title_en: 'Storytelling Saturdays', venue: 'Biblioteca Municipal Almeida Garrett (Sala Infantil)', when: 'Sáb (consultar agenda)', when_en: 'Sat (check schedule)', ongoing: true, cat: 'oficinas', ageMin: 3, ageMax: 6, icon: '📖', audience: 'kids', ages: '3–6 anos', ages_en: 'Ages 3–6', desc: 'Hora do conto seguida de uma oficina criativa para pequenos leitores e as suas famílias, nas Bibliotecas Municipais do Porto.', desc_en: 'A storytime hour followed by a creative workshop for young readers and their families, at Porto\'s municipal libraries.', source: 'https://www.agenda-porto.pt/en/evento/sabados-a-contar-1769783410450/' },
+  { id: 24, title: 'Cerâmica sensorial para bebés', title_en: 'Sensory Ceramics for Babies', venue: 'Oficina Josefina, Av. Camilo 224', when: 'Consultar agenda', when_en: 'Check schedule', ongoing: true, cat: 'artes', ageMin: 1.5, ageMax: 3, icon: '🏺', audience: 'kids', ages: '18–36 meses', ages_en: 'Ages 18–36 months', desc: 'Workshop sensorial de cerâmica para bebés e pequenos, num atelier independente de artes plásticas no Porto.', desc_en: 'A sensory ceramics workshop for babies and toddlers, at an independent visual-arts studio in Porto.', source: 'https://www.oficinajosefina.com/' },
+  { id: 25, title: 'PlayLab Porto — sessões de brincar', title_en: 'PlayLab Porto — Play Sessions', venue: 'PlayLab Porto, R. de Alves Redol 386, Bonfim', when: 'Fins de semana', when_en: 'Weekends', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: 6, icon: '🧩', audience: 'kids', ages: '0–6 anos', ages_en: 'Ages 0–6', desc: 'Espaço independente de aprendizagem pela brincadeira: sessões de messy play, yoga bebé-mãe e grupos de brincar com histórias e música. Pago, por sessão.', desc_en: 'An independent play-based learning space: messy-play sessions, mother-baby yoga, and play groups combining stories and music. Paid, per session.', source: 'https://sites.google.com/view/playlabporto/home' },
+  { id: 26, title: 'Oficinas de Artes na Casa-Museu Teixeira Lopes', title_en: 'Art Workshops at Casa-Museu Teixeira Lopes', venue: 'Casa-Museu Teixeira Lopes, Vila Nova de Gaia', when: 'Consultar agenda', when_en: 'Check schedule', ongoing: true, cat: 'artes', ageMin: 3, ageMax: 15, icon: '🖼️', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Oficinas artísticas gratuitas para crianças, num pequeno museu-casa em Vila Nova de Gaia.', desc_en: 'Free artistic workshops for children, at a small house-museum in Vila Nova de Gaia.', source: 'https://agendaculturalporto.org/workshops-no-porto/' },
+  { id: 27, title: 'Parque Infantil da Quinta do Covelo', title_en: 'Quinta do Covelo Playground', venue: 'Parque da Quinta do Covelo, R. de Bolama', when: 'Todos os dias, 7h–20h', when_en: 'Every day, 7am–8pm', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Um dos maiores parques infantis do Porto, dentro de jardins amplos, com café e casas de banho por perto. Entrada gratuita.', desc_en: 'One of Porto\'s largest playgrounds, set inside spacious gardens, with a café and restrooms nearby. Free entry.', source: null },
+  { id: 28, title: 'Parque Infantil dos Jardins do Palácio de Cristal', title_en: 'Crystal Palace Gardens Playground', venue: 'Jardins do Palácio de Cristal', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil dentro dos Jardins do Palácio de Cristal, com pavões e patos para observar e zonas de sombra — mesmo ao lado da Biblioteca Almeida Garrett. Entrada gratuita.', desc_en: 'A playground inside the Crystal Palace Gardens, with peacocks and ducks to watch and shaded rest areas — right next to the Almeida Garrett library. Free entry.', source: null },
+  { id: 29, title: 'Parque Infantil do Parque Oriental da Cidade', title_en: 'Parque Oriental da Cidade Playground', venue: 'Parque Oriental da Cidade, Campanhã', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Um parque infantil muito amplo dentro de jardins tranquilos em Campanhã, com café e casas de banho perto. Entrada gratuita.', desc_en: 'A very spacious playground inside quiet gardens in Campanhã, with a café and restrooms nearby. Free entry.', source: null },
+  { id: 30, title: 'Parque Infantil da Praia do Homem do Leme', title_en: 'Homem do Leme Beach Playground', venue: 'Av. de Montevideu 88, Porto', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil junto à frente marítima do Porto, boa paragem para combinar com um passeio pela marginal. Entrada gratuita.', desc_en: 'A playground right on Porto\'s seafront, a good stop to combine with a walk along the promenade. Free entry.', source: null },
+  { id: 31, title: 'Parque Infantil do Jardim de Belém', title_en: 'Jardim de Belém Playground', venue: 'R. Carnide 86, Porto', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil de bairro, uma opção tranquila e menos concorrida para brincar ao ar livre. Entrada gratuita.', desc_en: 'A neighbourhood playground — a quieter, less busy option for outdoor play. Free entry.', source: null },
+  { id: 32, title: 'The North Wall — Escalada', title_en: 'The North Wall — Climbing', venue: 'Rua do Tronco 375, Núcleo Empresarial Sarcol, Matosinhos', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, icon: '🧗', audience: 'kids', ages: 'Família (zona de boulder para os mais pequenos com escorrega)', ages_en: 'Family (dedicated boulder area for the youngest, with a slide)', desc: 'Ginásio de escalada indoor com uma zona de boulder própria para os mais pequenos, incluindo um escorrega. Também tem escalada para adultos.', desc_en: 'An indoor climbing gym with its own boulder area for the youngest kids, including a slide. Also offers adult climbing.', source: 'https://thenorthwall.pt/' },
+  { id: 33, title: 'São Rock — Escalada Indoor', title_en: 'São Rock — Indoor Climbing', venue: 'Rua de Godim 312, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, icon: '🧗', audience: 'kids', ages: 'Dos mais pequenos aos adultos', ages_en: 'From young kids to adults', desc: 'Espaço de escalada indoor independente, aberto a todas as idades — dos mais pequenos aos mais graúdos.', desc_en: 'An independent indoor climbing space, open to all ages — from young kids to grown-ups.', source: 'http://saorockclimbing.com/' },
 ];
 
 function evTitle(ev) { return state.lang === 'en' ? ev.title_en : ev.title; }
@@ -252,9 +269,10 @@ const T = {
   pt: {
     searchPlaceholder: 'Procurar eventos, locais…',
     ageBadge: '2–15 anos',
-    audienceAll: 'Todos', audienceKids: 'Crianças', audienceAdults: 'Adultos',
-    dateAll: 'Todas as datas', dateToday: 'Hoje', dateTomorrow: 'Amanhã',
-    dateWeekend: 'Fim de semana', dateWeek: 'Esta semana', datePick: '📅 Escolher data',
+    ageFilterLabel: 'Idades', ageFilterHint: 'Ainda não adicionaste nenhuma criança.',
+    ageFilterPlaceholder: 'Idade em anos', ageFilterAdd: 'Adicionar',
+    dateAll: 'Todas as datas', dateToday: 'Hoje',
+    dateWeekend: 'Fim de semana', datePick: '📅 Escolher data',
     dateAllLabel: 'Todas as datas', dateWeekendLabel: 'Este fim de semana',
     navHome: 'Início', navExplore: 'Explorar', navSaved: 'Guardados', navProfile: 'Perfil',
     emptyFilters: 'Sem eventos para estes filtros ainda.', emptyFiltersHint: 'Experimenta remover um filtro.',
@@ -269,13 +287,16 @@ const T = {
     profileSuggestText: 'Sugere-nos diretamente — especialmente organizações pequenas ou independentes, que são as mais difíceis de encontrar sozinhos.',
     profileSuggestBtn: 'Sugerir um evento',
     installText: 'Instala esta app no teu telemóvel para acesso rápido.', installBtn: 'Instalar',
+    reminderToday: 'É hoje! Tens guardado:', reminderTomorrow: 'É amanhã! Tens guardado:',
+    badgeToday: 'Hoje', badgeTomorrow: 'Amanhã',
   },
   en: {
     searchPlaceholder: 'Search events, places…',
     ageBadge: 'Ages 2–15',
-    audienceAll: 'All', audienceKids: 'Kids', audienceAdults: 'Adults',
-    dateAll: 'All dates', dateToday: 'Today', dateTomorrow: 'Tomorrow',
-    dateWeekend: 'Weekend', dateWeek: 'This week', datePick: '📅 Pick a date',
+    ageFilterLabel: 'Ages', ageFilterHint: "You haven't added any children yet.",
+    ageFilterPlaceholder: 'Age in years', ageFilterAdd: 'Add',
+    dateAll: 'All dates', dateToday: 'Today',
+    dateWeekend: 'Weekend', datePick: '📅 Pick a date',
     dateAllLabel: 'All dates', dateWeekendLabel: 'This weekend',
     navHome: 'Home', navExplore: 'Explore', navSaved: 'Saved', navProfile: 'Profile',
     emptyFilters: 'No events for these filters yet.', emptyFiltersHint: 'Try removing a filter.',
@@ -290,6 +311,8 @@ const T = {
     profileSuggestText: 'Suggest it to us directly — especially small or independent organisations, which are the hardest to find on our own.',
     profileSuggestBtn: 'Suggest an event',
     installText: 'Install this app on your phone for quick access.', installBtn: 'Install',
+    reminderToday: "It's today! You have saved:", reminderTomorrow: "It's tomorrow! You have saved:",
+    badgeToday: 'Today', badgeTomorrow: 'Tomorrow',
   },
 };
 function t(key) { return T[state.lang][key]; }
@@ -298,16 +321,20 @@ function t(key) { return T[state.lang][key]; }
 const state = {
   tab: 'home',
   search: '',
-  audience: 'all', // all | kids | adults
   cats: new Set(),
-  dateMode: 'all', // all | today | tomorrow | weekend | week | custom
+  dateMode: 'all', // all | today | weekend | custom
   customDate: null, // 'YYYY-MM-DD'
+  childAges: JSON.parse(localStorage.getItem('pf_child_ages') || '[]'), // array of numbers (years)
+  ageFilterOpen: false,
   lang: localStorage.getItem('pf_lang') || 'pt', // pt | en
   saved: new Set(JSON.parse(localStorage.getItem('pf_saved') || '[]')),
 };
 
 function persistSaved() {
   localStorage.setItem('pf_saved', JSON.stringify([...state.saved]));
+}
+function persistChildAges() {
+  localStorage.setItem('pf_child_ages', JSON.stringify(state.childAges));
 }
 function setLang(lang) {
   state.lang = lang;
@@ -351,16 +378,11 @@ function matchesDate(ev) {
   switch (state.dateMode) {
     case 'all': return true;
     case 'today': return coversDay(ev, today);
-    case 'tomorrow': return coversDay(ev, addDays(today, 1));
     case 'weekend': {
       const day = today.getDay(); // 0 Sun .. 6 Sat
       const satOffset = day === 6 ? 0 : (6 - day + 7) % 7;
       const sunOffset = day === 0 ? 0 : (7 - day) % 7;
       return coversDay(ev, addDays(today, satOffset)) || coversDay(ev, addDays(today, sunOffset));
-    }
-    case 'week': {
-      for (let i = 0; i < 7; i++) if (coversDay(ev, addDays(today, i))) return true;
-      return false;
     }
     case 'custom':
       if (!state.customDate) return true;
@@ -370,9 +392,18 @@ function matchesDate(ev) {
 }
 
 /* ===================== FILTER LOGIC ===================== */
+// With no children set, no age filtering happens (kids + adult events both show).
+// With one or more children set, an event matches if it's a good fit for at
+// least one of them (its age range overlaps that child's age).
+function ageMatches(ev) {
+  if (!state.childAges.length) return true;
+  const lo = typeof ev.ageMin === 'number' ? ev.ageMin : 0;
+  const hi = typeof ev.ageMax === 'number' ? ev.ageMax : Infinity;
+  return state.childAges.some(age => age >= lo && age <= hi);
+}
 function matches(ev) {
   if (isPastEvent(ev)) return false;
-  if (state.audience !== 'all' && ev.audience !== state.audience) return false;
+  if (!ageMatches(ev)) return false;
   if (state.cats.size && !state.cats.has(ev.cat)) return false;
   if (!matchesDate(ev)) return false;
   if (state.search.trim()) {
@@ -387,25 +418,50 @@ function matches(ev) {
 const contentEl = document.getElementById('content');
 const filterBarEl = document.getElementById('filterBar');
 
+function renderAgeFilter() {
+  const wrap = document.getElementById('ageFilter');
+  const sorted = state.childAges.slice().sort((a, b) => a - b);
+  const unit = state.lang === 'en' ? (n => n === 1 ? 'yr' : 'yrs') : (n => n === 1 ? 'ano' : 'anos');
+  const label = sorted.length ? `👶 ${sorted.join(', ')} ${unit(sorted.length)}` : `👶 ${t('ageFilterLabel')}`;
+  let html = `<button class="age-btn ${sorted.length ? 'on' : ''} ${state.ageFilterOpen ? 'open' : ''}" id="ageFilterBtn">${label}</button>`;
+  if (state.ageFilterOpen) {
+    html += `<div class="age-panel">
+      <div class="age-panel-chips">${
+        sorted.length
+          ? state.childAges.map((age, i) => `<span class="age-chip">${age} ${unit(age === 1 ? 1 : 2)}<button data-remove-age="${i}">×</button></span>`).join('')
+          : `<span class="age-panel-hint">${t('ageFilterHint')}</span>`
+      }</div>
+      <div class="age-panel-add">
+        <input type="number" min="0" max="18" step="0.5" id="ageInput" placeholder="${t('ageFilterPlaceholder')}" />
+        <button id="ageAddBtn">${t('ageFilterAdd')}</button>
+      </div>
+    </div>`;
+  }
+  wrap.innerHTML = html;
+  document.getElementById('ageFilterBtn').onclick = () => { state.ageFilterOpen = !state.ageFilterOpen; render(); };
+  if (state.ageFilterOpen) {
+    wrap.querySelectorAll('[data-remove-age]').forEach(btn => {
+      btn.onclick = () => { state.childAges.splice(Number(btn.dataset.removeAge), 1); persistChildAges(); render(); };
+    });
+    const addBtn = document.getElementById('ageAddBtn');
+    const input = document.getElementById('ageInput');
+    const doAdd = () => {
+      const v = parseFloat(input.value);
+      if (!isNaN(v) && v >= 0) { state.childAges.push(v); persistChildAges(); input.value = ''; render(); }
+    };
+    addBtn.onclick = doAdd;
+    input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } };
+  }
+}
+
 function renderFilters() {
-  const seg = document.getElementById('audienceSeg');
-  seg.innerHTML = '';
-  [['all', t('audienceAll')], ['kids', t('audienceKids')], ['adults', t('audienceAdults')]].forEach(([key,label]) => {
-    const b = document.createElement('button');
-    b.textContent = label;
-    if (state.audience === key) b.classList.add('on');
-    b.onclick = () => { state.audience = key; render(); };
-    seg.appendChild(b);
-  });
+  renderAgeFilter();
 
   const dateRow = document.getElementById('dateRow');
   dateRow.innerHTML = '';
   const datePresets = [
-    ['all', t('dateAll')],
     ['today', t('dateToday')],
-    ['tomorrow', t('dateTomorrow')],
     ['weekend', t('dateWeekend')],
-    ['week', t('dateWeek')],
     ['custom', t('datePick')],
   ];
   datePresets.forEach(([key, label]) => {
@@ -413,9 +469,10 @@ function renderFilters() {
     chip.className = 'chip' + (state.dateMode === key ? ' on' : '');
     chip.textContent = key === 'custom' && state.dateMode === 'custom' && state.customDate ? `📅 ${formatDate(state.customDate)}` : label;
     chip.onclick = () => {
-      state.dateMode = key;
+      // Tapping an already-active chip clears it back to "all dates".
+      state.dateMode = state.dateMode === key ? 'all' : key;
       render();
-      if (key === 'custom') document.getElementById('customDateInput').focus();
+      if (state.dateMode === 'custom') document.getElementById('customDateInput').focus();
     };
     dateRow.appendChild(chip);
   });
@@ -444,9 +501,7 @@ function renderFilters() {
 function dateFilterLabel() {
   switch (state.dateMode) {
     case 'today': return t('dateToday');
-    case 'tomorrow': return t('dateTomorrow');
     case 'weekend': return t('dateWeekendLabel');
-    case 'week': return t('dateWeek');
     case 'custom': return state.customDate ? formatDate(state.customDate) : t('datePick');
     default: return t('dateAllLabel');
   }
@@ -460,15 +515,39 @@ function tagsHtml(ev) {
   return `${audTag}<span class="tag cat">${catObj ? catLabel(catObj) : ev.cat}</span>`;
 }
 
+// Saved-event reminders: a lightweight, in-app-only nudge (no push/backend) —
+// events with a specific date show a badge when they land today or tomorrow.
+function eventHappensOn(ev, day) {
+  if (ev.ongoing) return false;
+  return coversDay(ev, day);
+}
+function reminderBadgeFor(ev) {
+  const today = todayMidnight();
+  if (eventHappensOn(ev, today)) return 'today';
+  if (eventHappensOn(ev, addDays(today, 1))) return 'tomorrow';
+  return null;
+}
+function savedReminders() {
+  const today = todayMidnight();
+  const tomorrow = addDays(today, 1);
+  const savedEvents = EVENTS.filter(ev => state.saved.has(ev.id) && !isPastEvent(ev));
+  return {
+    todayList: savedEvents.filter(ev => eventHappensOn(ev, today)),
+    tomorrowList: savedEvents.filter(ev => eventHappensOn(ev, tomorrow)),
+  };
+}
+
 function cardHtml(ev) {
   const isSaved = state.saved.has(ev.id);
+  const badge = reminderBadgeFor(ev);
+  const badgeHtml = badge ? `<span class="badge-soon">${badge === 'today' ? t('badgeToday') : t('badgeTomorrow')}</span>` : '';
   return `
     <div class="card" data-id="${ev.id}">
       <div class="thumb">${ev.icon}</div>
       <div class="card-body">
         <div class="card-title">${evTitle(ev)}</div>
         <div class="card-meta">${ev.venue} · ${evWhen(ev)}</div>
-        <div class="card-tags">${tagsHtml(ev)}</div>
+        <div class="card-tags">${badgeHtml}${tagsHtml(ev)}</div>
       </div>
       <button class="heart ${isSaved ? 'on' : ''}" data-save="${ev.id}">${isSaved ? '♥' : '♡'}</button>
     </div>
@@ -561,12 +640,30 @@ function renderProfile() {
 function render() {
   document.getElementById('searchInput').placeholder = t('searchPlaceholder');
   document.getElementById('weekLabel').textContent = t('ageBadge');
+  const headerLangBtn = document.getElementById('headerLangBtn');
+  headerLangBtn.textContent = state.lang === 'en' ? 'EN' : 'PT';
+  headerLangBtn.onclick = () => setLang(state.lang === 'en' ? 'pt' : 'en');
   document.querySelector('.navitem[data-tab="home"]').innerHTML = `<span class="ic">🏠</span>${t('navHome')}`;
   document.querySelector('.navitem[data-tab="explore"]').innerHTML = `<span class="ic">🧭</span>${t('navExplore')}`;
   document.querySelector('.navitem[data-tab="saved"]').innerHTML = `<span class="ic">♥</span>${t('navSaved')}`;
   document.querySelector('.navitem[data-tab="profile"]').innerHTML = `<span class="ic">👤</span>${t('navProfile')}`;
   document.querySelector('#installBanner span').textContent = t('installText');
   document.getElementById('installBtn').textContent = t('installBtn');
+
+  const reminderBanner = document.getElementById('reminderBanner');
+  if (state.tab === 'home' || state.tab === 'saved') {
+    const { todayList, tomorrowList } = savedReminders();
+    const list = todayList.length ? todayList : tomorrowList;
+    if (list.length) {
+      const label = todayList.length ? t('reminderToday') : t('reminderTomorrow');
+      reminderBanner.innerHTML = `<span>⏰</span><span>${label} ${list.map(evTitle).join(', ')}</span>`;
+      reminderBanner.classList.add('show');
+    } else {
+      reminderBanner.classList.remove('show');
+    }
+  } else {
+    reminderBanner.classList.remove('show');
+  }
 
   renderFilters();
   if (state.tab === 'home') renderHome();
