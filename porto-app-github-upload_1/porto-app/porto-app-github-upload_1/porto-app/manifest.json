@@ -1,0 +1,16 @@
+{
+  "name": "Porto em Família",
+  "short_name": "Porto Família",
+  "description": "Eventos para famílias, crianças (2-15 anos) e adultos no Porto.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3f8",
+  "theme_color": "#16406e",
+  "lang": "pt-PT",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
