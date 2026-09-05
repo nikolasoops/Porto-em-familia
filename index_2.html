@@ -92,10 +92,26 @@
   .active-chip.b { background: var(--orange); }
   .active-chip button { border: none; background: rgba(255,255,255,0.25); color: #fff; font-size: 10px; width:16px; height:16px; border-radius:50%; cursor: pointer; line-height: 1; display:flex; align-items:center; justify-content:center; padding:0; }
 
-  /* ---------- seg (list/map toggle) ---------- */
+  /* ---------- seg (list/map/calendar toggle) ---------- */
   .seg { display:flex; margin: 2px 18px 10px; border-radius: 12px; padding: 3px; background: #ece4a8; }
   .seg button { flex:1; display:flex; align-items:center; justify-content:center; gap:5px; font-size:12.5px; font-weight:800; padding:9px 0; border-radius:9px; border:none; background:transparent; color: var(--primary); font-family: inherit; cursor: pointer; }
   .seg button.on { background: var(--primary); color: #fff; }
+
+  /* ---------- calendar ---------- */
+  .cal-wrap { padding: 0 18px; }
+  .cal-card { background: #fff; border: 2px solid var(--primary); border-radius: 18px; padding: 14px; }
+  .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; }
+  .cal-header button { background: none; border: none; font-size: 17px; color: var(--primary); cursor: pointer; padding: 4px 10px; font-family: inherit; }
+  .cal-month-label { font-family: 'Baloo 2', system-ui, sans-serif; font-size: 19px; font-weight: 800; color: var(--primary); }
+  .cal-grid { display:grid; grid-template-columns: repeat(7, 1fr); row-gap: 4px; text-align: center; }
+  .cal-dow { font-size: 10.5px; font-weight: 800; color: var(--orange); padding-bottom: 6px; }
+  .cal-day { position: relative; padding: 8px 0; font-size: 13px; font-weight: 700; color: var(--ink); cursor: pointer; border-radius: 999px; background: none; border: none; font-family: inherit; }
+  .cal-day.empty { visibility: hidden; cursor: default; }
+  .cal-day.today { background: var(--orange); color: #fff; }
+  .cal-day.selected { background: var(--yellow); color: #5c3d05; }
+  .cal-day .dot { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
+  .cal-day.today .dot, .cal-day.selected .dot { background: #fff; }
+  .cal-selected-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); padding: 14px 0 8px; }
 
   /* ---------- filter overlay panel ---------- */
   .filter-overlay-backdrop { position:absolute; inset:0; background: rgba(23,50,79,0.32); z-index: 25; display:none; }
@@ -170,6 +186,23 @@
   .navitem .ic { font-size: 18px; }
   .navitem.active { color: var(--primary); }
 
+  /* ---------- splash screen ---------- */
+  .splash-screen {
+    position: absolute; inset: 0; z-index: 100; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden; opacity: 1; transition: opacity 0.5s ease;
+  }
+  .splash-screen.hide { opacity: 0; pointer-events: none; }
+  .splash-dash { position: absolute; height: 3px; width: 140%; left: -20%;
+    background-image: linear-gradient(90deg, var(--orange) 0 12px, transparent 12px 20px);
+    background-size: 20px 3px; background-repeat: repeat-x; }
+  .splash-dash.top { top: 26px; transform: rotate(-4deg); }
+  .splash-dash.bottom { bottom: 30px; transform: rotate(-4deg); }
+  .splash-cloud { position: absolute; opacity: 0.9; }
+  .splash-word { font-family: 'Baloo 2', system-ui, sans-serif; font-size: 30px; font-weight: 800; color: var(--primary); margin-top: 18px; }
+  .splash-word .mapp { font-family: 'Quicksand', system-ui, sans-serif; font-weight: 600; opacity: 0.85; }
+  .splash-figure { width: 130px; height: auto; }
+
   /* ---------- detail modal ---------- */
   .modal-backdrop {
     position: absolute; inset: 0; background: rgba(15,36,56,0.4);
@@ -228,6 +261,25 @@
 </head>
 <body>
 <div id="app">
+
+  <div class="splash-screen" id="splashScreen">
+    <div class="splash-dash top"></div>
+    <div class="splash-dash bottom"></div>
+    <svg class="splash-cloud" style="top:18%; left:20%; width:44px;" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 28 C4 28 4 16 12 16 C13 8 24 7 27 14 C36 12 40 20 34 25 C34 30 14 30 12 28 Z" fill="none" stroke="#2f62a8" stroke-width="2" stroke-dasharray="4 4"/></svg>
+    <svg class="splash-cloud" style="top:24%; right:14%; width:64px;" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 28 C4 28 4 16 12 16 C13 8 24 7 27 14 C36 12 40 20 34 25 C34 30 14 30 12 28 Z" fill="none" stroke="#2f62a8" stroke-width="2" stroke-dasharray="4 4"/></svg>
+    <svg class="splash-cloud" style="top:47%; left:6%; width:56px;" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 28 C4 28 4 16 12 16 C13 8 24 7 27 14 C36 12 40 20 34 25 C34 30 14 30 12 28 Z" fill="none" stroke="#2f62a8" stroke-width="2" stroke-dasharray="4 4"/></svg>
+    <span class="splash-word"><b>MINI</b><span class="mapp">mapp</span></span>
+    <svg class="splash-figure" viewBox="0 0 120 195" xmlns="http://www.w3.org/2000/svg">
+      <path d="M60 60 C33 60 15 78 15 105 C15 130 35 150 50 163 L70 163 C85 150 105 130 105 105 C105 78 87 60 60 60 Z" fill="#fff" stroke="#2f62a8" stroke-width="6"/>
+      <circle cx="60" cy="105" r="17" fill="none" stroke="#2f62a8" stroke-width="6"/>
+      <circle cx="60" cy="105" r="7" fill="#e8611f"/>
+      <ellipse cx="45" cy="54" rx="13" ry="8" fill="#e8611f" transform="rotate(-18 45 54)"/>
+      <path d="M52 161 L42 176 L51 185" stroke="#2f62a8" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M69 161 L82 172 L72 183" stroke="#2f62a8" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <ellipse cx="60" cy="189" rx="24" ry="5" fill="#e8611f" opacity="0.55"/>
+      <path d="M32 34 C22 34 22 14 36 14 C48 14 48 26 37 26 C31 26 29 33 34 40" stroke="#e8611f" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    </svg>
+  </div>
 
   <div class="app-header">
     <button class="corner-ribbon" id="langRibbon"><span>PT</span></button>
@@ -393,7 +445,7 @@ const T = {
     dateWeekend: 'Fim de semana', datePick: '📅 Escolher data',
     dateAllLabel: 'Todas as datas', dateWeekendLabel: 'Este fim de semana',
     navHome: 'Início', navExplore: 'Explorar', navSaved: 'Guardados', navProfile: 'Perfil',
-    viewList: 'Lista', viewMap: 'Mapa', viewDetails: 'Ver detalhes', mapUnavailable: 'Mapa indisponível offline — liga-te à internet para o ver.',
+    viewList: 'Lista', viewMap: 'Mapa', viewCalendar: 'Calendário', viewDetails: 'Ver detalhes', mapUnavailable: 'Mapa indisponível offline — liga-te à internet para o ver.',
     emptyFilters: 'Sem eventos para estes filtros ainda.', emptyFiltersHint: 'Experimenta remover um filtro.',
     savedLabel: 'Guardados', emptySaved: 'Ainda não guardaste nenhum evento.', emptySavedHint: 'Toca no ♡ num evento para o guardar aqui.',
     tagAdults: 'Adultos', tagKidsFallback: 'Crianças',
@@ -424,7 +476,7 @@ const T = {
     dateWeekend: 'Weekend', datePick: '📅 Pick a date',
     dateAllLabel: 'All dates', dateWeekendLabel: 'This weekend',
     navHome: 'Home', navExplore: 'Explore', navSaved: 'Saved', navProfile: 'Profile',
-    viewList: 'List', viewMap: 'Map', viewDetails: 'View details', mapUnavailable: 'Map unavailable offline — connect to the internet to see it.',
+    viewList: 'List', viewMap: 'Map', viewCalendar: 'Calendar', viewDetails: 'View details', mapUnavailable: 'Map unavailable offline — connect to the internet to see it.',
     emptyFilters: 'No events for these filters yet.', emptyFiltersHint: 'Try removing a filter.',
     savedLabel: 'Saved', emptySaved: "You haven't saved any events yet.", emptySavedHint: 'Tap the ♡ on an event to save it here.',
     tagAdults: 'Adults', tagKidsFallback: 'Kids',
@@ -457,7 +509,9 @@ const state = {
   filtersOpen: false,
   ageStepper: null, // { index: number|null, value: number } | null
   search: '',
-  exploreView: 'list', // list | map
+  exploreView: 'list', // list | map | calendar
+  calendarMonth: (() => { const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d; })(),
+  calendarSelectedDate: null, // 'YYYY-MM-DD', set to today lazily on first calendar render
   cats: new Set(),
   dateMode: 'all', // all | today | weekend | custom
   customDate: null, // 'YYYY-MM-DD'
@@ -546,7 +600,8 @@ function ageMatches(ev) {
   const hi = typeof ev.ageMax === 'number' ? ev.ageMax : Infinity;
   return state.childAges.some(age => age >= lo && age <= hi);
 }
-function matches(ev) {
+function matches(ev, opts) {
+  opts = opts || {};
   if (ev.city !== state.city) return false;
   if (isPastEvent(ev)) return false;
   if (!ageMatches(ev)) return false;
@@ -556,13 +611,21 @@ function matches(ev) {
   if (state.freeOnly && ev.free !== true) return false;
   if (state.locationFilter === 'indoor' && ev.indoor !== true) return false;
   if (state.locationFilter === 'outdoor' && ev.indoor !== false) return false;
-  if (!matchesDate(ev)) return false;
+  if (!opts.ignoreDate && !matchesDate(ev)) return false;
   if (state.search.trim()) {
     const q = state.search.trim().toLowerCase();
     const hay = `${ev.title} ${ev.title_en || ''} ${ev.venue}`.toLowerCase();
     if (!hay.includes(q)) return false;
   }
   return true;
+}
+// Calendar view picks its own date via the day grid, so it ignores dateMode
+// (today/weekend/custom) and shows the month regardless — only the other
+// filters (age, category, free, indoor/outdoor, search) still apply.
+function matchesForCalendar(ev) { return matches(ev, { ignoreDate: true }); }
+function todayIso() {
+  const d = todayMidnight();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /* ===================== RENDER ===================== */
@@ -827,8 +890,9 @@ function renderHome() {
   const list = EVENTS.filter(matches);
   const toggleHtml = `
     <div class="seg" id="exploreViewToggle">
-      <button data-view="list" class="${state.exploreView !== 'map' ? 'on' : ''}">☰ ${t('viewList')}</button>
+      <button data-view="list" class="${state.exploreView === 'list' ? 'on' : ''}">☰ ${t('viewList')}</button>
       <button data-view="map" class="${state.exploreView === 'map' ? 'on' : ''}">📍 ${t('viewMap')}</button>
+      <button data-view="calendar" class="${state.exploreView === 'calendar' ? 'on' : ''}">🗓️ ${t('viewCalendar')}</button>
     </div>
   `;
 
@@ -836,6 +900,14 @@ function renderHome() {
     contentEl.innerHTML = `${toggleHtml}<div class="map-wrap"><div id="exploreMap"></div></div>`;
     wireExploreViewToggle();
     renderExploreMap(list);
+    return;
+  }
+
+  if (state.exploreView === 'calendar') {
+    const pool = EVENTS.filter(matchesForCalendar);
+    contentEl.innerHTML = `${toggleHtml}${calendarHtml(pool)}`;
+    wireExploreViewToggle();
+    wireCalendar(pool);
     return;
   }
 
@@ -859,6 +931,83 @@ function wireExploreViewToggle() {
       render();
     });
   });
+}
+
+function calendarHtml(pool) {
+  if (!state.calendarSelectedDate) state.calendarSelectedDate = todayIso();
+  const month = state.calendarMonth;
+  const year = month.getFullYear();
+  const mIdx = month.getMonth();
+  const firstDow = new Date(year, mIdx, 1).getDay();
+  const daysInMonth = new Date(year, mIdx + 1, 0).getDate();
+  const lang = state.lang;
+  const monthLabel = `${MONTHS[lang][mIdx]} ${year}`;
+  const todayStr = todayIso();
+
+  const dowHtml = WEEKDAYS[lang].map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  let cellsHtml = '';
+  for (let i = 0; i < firstDow; i++) {
+    cellsHtml += `<div class="cal-day empty"></div>`;
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateObj = new Date(year, mIdx, day);
+    dateObj.setHours(0, 0, 0, 0);
+    const iso = `${year}-${String(mIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const isToday = iso === todayStr;
+    const isSelected = iso === state.calendarSelectedDate;
+    const hasEvents = pool.some(ev => coversDay(ev, dateObj));
+    const cls = ['cal-day'];
+    if (isToday) cls.push('today');
+    if (isSelected) cls.push('selected');
+    cellsHtml += `<button class="${cls.join(' ')}" data-date="${iso}">${day}${hasEvents ? '<span class="dot"></span>' : ''}</button>`;
+  }
+
+  const selectedDateObj = new Date(state.calendarSelectedDate + 'T00:00:00');
+  const dayEvents = pool.filter(ev => coversDay(ev, selectedDateObj));
+  const selectedLabel = formatDate(state.calendarSelectedDate);
+  const dayListHtml = dayEvents.length
+    ? dayEvents.map(cardHtml).join('')
+    : `<div class="empty">${t('emptyFilters')}<br>${t('emptyFiltersHint')}</div>`;
+
+  return `
+    <div class="cal-wrap">
+      <div class="cal-card">
+        <div class="cal-header">
+          <button id="calPrev" aria-label="prev">‹</button>
+          <div class="cal-month-label">${monthLabel}</div>
+          <button id="calNext" aria-label="next">›</button>
+        </div>
+        <div class="cal-grid">${dowHtml}${cellsHtml}</div>
+      </div>
+      <div class="cal-selected-label">${selectedLabel}</div>
+      <div class="list">${dayListHtml}</div>
+    </div>
+  `;
+}
+
+function wireCalendar(pool) {
+  const prev = document.getElementById('calPrev');
+  const next = document.getElementById('calNext');
+  if (prev) prev.addEventListener('click', () => {
+    const d = new Date(state.calendarMonth);
+    d.setMonth(d.getMonth() - 1);
+    state.calendarMonth = d;
+    render();
+  });
+  if (next) next.addEventListener('click', () => {
+    const d = new Date(state.calendarMonth);
+    d.setMonth(d.getMonth() + 1);
+    state.calendarMonth = d;
+    render();
+  });
+  document.querySelectorAll('.cal-day[data-date]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.calendarSelectedDate = btn.dataset.date;
+      render();
+    });
+  });
+  attachCardHandlers(contentEl);
 }
 
 function renderExploreMap(list) {
@@ -1061,6 +1210,14 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   });
 }
+
+/* ===================== SPLASH SCREEN ===================== */
+setTimeout(() => {
+  const splash = document.getElementById('splashScreen');
+  if (!splash) return;
+  splash.classList.add('hide');
+  setTimeout(() => splash.remove(), 550);
+}, 1500);
 
 /* ===================== INIT ===================== */
 render();
