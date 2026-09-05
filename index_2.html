@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16406e">
+<meta name="description" content="Eventos para famílias e crianças no Porto, feito à mão.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Porto em Família">
+<title>Porto em Família</title>
+<style>
+  :root {
+    --bg: #fcf3b6;
+    --primary: #2f62a8;
+    --primary-2: #234c86;
+    --card: #ffffff;
+    --accent: #d99a2b;
+    --orange: #e8611f;
+    --yellow: #f5b921;
+    --ink: #17324f;
+    --muted: #62717f;
+    --line: #e6dfa0;
+    --kids: #1f6b3d;
+    --kids-bg: #e7f1ea;
+    --adults: #b5780f;
+    --adults-bg: #f6ece0;
+    --danger: #c0392b;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overscroll-behavior-y: none;
+  }
+  #app { max-width: 480px; margin: 0 auto; height: 100dvh; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+
+  /* ---------- header ---------- */
+  .app-header {
+    flex: none;
+    position: relative;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 18px 12px;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .app-header::before {
+    content: ''; position: absolute; top: 0; left: -10%; width: 120%; height: 3px; overflow: hidden;
+    background-image: linear-gradient(90deg, var(--orange) 0 12px, transparent 12px 20px);
+    background-size: 20px 3px; background-repeat: repeat-x; transform: rotate(-2deg); z-index: 0;
+  }
+  .corner-ribbon { position: absolute; top: 0; right: 0; width: 60px; height: 60px; background: var(--primary); clip-path: polygon(0 0, 100% 0, 100% 100%); border: none; padding: 0; cursor: pointer; z-index: 6; }
+  .corner-ribbon span { position: absolute; top: 10px; right: -14px; width: 78px; display: block; text-align: center; transform: rotate(45deg); color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; }
+  .brand-row { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin: 10px 0 14px; }
+  .brand { display:flex; align-items:center; gap: 7px; min-width: 0; }
+  .brand-logo { width: 30px; height: 34px; flex: none; }
+  .brand-word { font-family: 'Baloo 2', system-ui, sans-serif; font-size: 19px; font-weight: 800; color: var(--primary); white-space: nowrap; }
+  .brand-word .mapp { font-family: 'Quicksand', system-ui, sans-serif; font-weight: 600; opacity: 0.85; }
+  .city-pill-wrap { position: relative; flex: none; margin-right: 34px; }
+  .city-pill { display:flex; align-items:center; gap: 6px; font-size: 13px; font-weight: 800; padding: 9px 14px; border-radius: 14px; background: var(--primary); color: #fff; border: none; font-family: inherit; cursor: pointer; white-space: nowrap; }
+  .city-pill .car { font-size: 9px; transition: transform 0.15s; display:inline-block; }
+  .city-pill.open .car { transform: rotate(180deg); }
+  .city-menu { position: absolute; top: calc(100% + 6px); right: 0; background: var(--primary); border-radius: 16px; padding: 7px; min-width: 168px; box-shadow: 0 12px 28px rgba(23,50,79,0.3); z-index: 30; }
+  .city-menu button { display:flex; align-items:center; gap: 10px; width: 100%; text-align:left; background:none; border:none; color:#fff; font-size: 14px; font-weight: 700; padding: 9px 8px; border-radius: 10px; font-family: inherit; cursor: pointer; }
+  .city-menu button:active { background: rgba(255,255,255,0.14); }
+  .city-radio { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.65); flex: none; display:flex; align-items:center; justify-content:center; }
+  .city-radio.on { border-color: #fff; }
+  .city-radio.on::after { content:''; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
+
+  /* ---------- search + filter trigger ---------- */
+  .filter-controls { flex: none; background: var(--bg); }
+  .icon-row { display:flex; align-items:center; gap: 9px; padding: 0 18px 10px; }
+  .search-pill { flex: 1; display:flex; align-items:center; gap: 8px; background: var(--primary); border-radius: 13px; padding: 0 14px; height: 44px; min-width: 0; }
+  .search-pill input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: #fff; font-size: 13.5px; font-family: inherit; }
+  .search-pill input::placeholder { color: rgba(255,255,255,0.8); }
+  .search-pill .sic { color: #fff; font-size: 15px; flex: none; }
+  .filtros-btn { flex: none; width: 44px; height: 44px; border-radius: 13px; background: #fff; border: 1px solid var(--line); color: var(--primary); display:flex; align-items:center; justify-content:center; cursor: pointer; position: relative; }
+  .filtros-btn .count { position:absolute; top:-5px; right:-5px; background: var(--orange); color:#fff; font-size: 9px; font-weight: 800; border-radius: 999px; min-width:15px; height:15px; display:flex; align-items:center; justify-content:center; padding: 0 3px; }
+
+  /* ---------- active filter chips ---------- */
+  .active-chips { display:flex; gap: 7px; padding: 0 18px 10px; overflow-x: auto; }
+  .active-chips::-webkit-scrollbar { display: none; }
+  .active-chip { flex: none; display:flex; align-items:center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 6px 6px 6px 12px; border-radius: 999px; color: #fff; white-space: nowrap; }
+  .active-chip.a { background: var(--primary); }
+  .active-chip.b { background: var(--orange); }
+  .active-chip button { border: none; background: rgba(255,255,255,0.25); color: #fff; font-size: 10px; width:16px; height:16px; border-radius:50%; cursor: pointer; line-height: 1; display:flex; align-items:center; justify-content:center; padding:0; }
+
+  /* ---------- seg (list/map toggle) ---------- */
+  .seg { display:flex; margin: 2px 18px 10px; border-radius: 12px; padding: 3px; background: #ece4a8; }
+  .seg button { flex:1; display:flex; align-items:center; justify-content:center; gap:5px; font-size:12.5px; font-weight:800; padding:9px 0; border-radius:9px; border:none; background:transparent; color: var(--primary); font-family: inherit; cursor: pointer; }
+  .seg button.on { background: var(--primary); color: #fff; }
+
+  /* ---------- filter overlay panel ---------- */
+  .filter-overlay-backdrop { position:absolute; inset:0; background: rgba(23,50,79,0.32); z-index: 25; display:none; }
+  .filter-overlay-backdrop.open { display:block; }
+  .filter-panel { position:absolute; top: 128px; left: 18px; right: 18px; max-height: 72%; overflow-y:auto; background: rgba(47,98,168,0.95); border-radius: 20px; padding: 18px 16px; color:#fff; box-shadow: 0 16px 40px rgba(23,50,79,0.35); }
+  .filter-panel-title { display:flex; align-items:center; gap: 8px; font-size: 15.5px; font-weight: 800; margin-bottom: 14px; }
+  .fp-close { position:absolute; top: 14px; right: 14px; background:none; border:none; color:#fff; font-size: 15px; cursor:pointer; opacity: 0.85; }
+  .fp-section { margin-bottom: 14px; }
+  .fp-section:last-child { margin-bottom: 0; }
+  .fp-label { font-size: 11px; font-weight: 800; opacity: 0.8; margin-bottom: 8px; }
+  .fp-row { display:flex; gap: 8px; flex-wrap: wrap; align-items:center; }
+  .fp-pill { padding: 9px 14px; border-radius: 12px; font-size: 12.5px; font-weight: 800; border: none; font-family: inherit; cursor: pointer; background: rgba(255,255,255,0.18); color: #fff; }
+  .fp-pill.on { background: #fff; color: var(--primary); }
+  .fp-pill.orange { background: var(--orange); color: #fff; }
+  .fp-pill.orange.on { background: #fff; color: var(--orange); }
+  .fp-pill.yellow { background: var(--yellow); color: #5c3d05; }
+  .fp-pill.yellow.on { background: #fff; color: #8a6006; }
+  .fp-add-circle { width: 38px; height: 38px; border-radius: 50%; border: none; background: rgba(255,255,255,0.22); color: #fff; font-size: 19px; font-weight: 800; cursor: pointer; }
+
+  /* ---------- age stepper modal ---------- */
+  .stepper-backdrop { position:absolute; inset:0; background: rgba(23,50,79,0.4); z-index: 40; display:none; align-items:center; justify-content:center; }
+  .stepper-backdrop.open { display:flex; }
+  .stepper-card { background: var(--primary); border-radius: 22px; padding: 16px 26px 22px; color: #fff; text-align:center; min-width: 210px; }
+  .stepper-handle { width: 32px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 999px; margin: 0 auto 12px; }
+  .stepper-title { font-size: 12.5px; font-weight: 700; opacity: 0.85; margin-bottom: 10px; }
+  .stepper-controls { display:flex; align-items:center; justify-content:center; gap: 20px; margin-bottom: 14px; }
+  .stepper-btn { width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: #fff; font-size: 19px; font-weight: 800; cursor: pointer; }
+  .stepper-value { font-size: 32px; font-weight: 800; min-width: 48px; }
+  .stepper-confirm { width: 40px; height: 40px; border-radius: 50%; border: none; background: #fff; color: var(--primary); font-size: 17px; cursor: pointer; margin: 0 auto; display:flex; align-items:center; justify-content:center; }
+  .stepper-remove { margin-top: 10px; background: rgba(255,255,255,0.18); color:#fff; border:none; border-radius: 10px; padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* ---------- list ---------- */
+  .content { flex: 1; overflow-y: auto; padding-bottom: 12px; -webkit-overflow-scrolling: touch; }
+  .section-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); padding: 14px 18px 8px; }
+  .empty { padding: 40px 24px; text-align:center; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+  .list { padding: 0 18px; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--card); border: 2px solid var(--primary); border-radius: 18px; padding: 12px; display:flex; gap:11px; cursor: pointer; text-align: left; }
+  .card:nth-child(even) { border-color: var(--orange); }
+  .thumb { width: 54px; height: 54px; border-radius: 12px; flex: none; display:flex; align-items:center; justify-content:center; font-size: 22px; background: #e7eef5; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title { font-size: 13.5px; font-weight: 800; margin: 0 0 3px; line-height: 1.3; color: var(--primary); }
+  .card-meta { font-size: 11.5px; margin: 0 0 8px; color: var(--muted); }
+  .card-tags { display:flex; gap: 5px; flex-wrap: wrap; }
+  .tag { font-size: 9.5px; font-weight: 800; padding: 4px 9px; border-radius: 999px; }
+  .tag.kids { background: var(--kids-bg); color: var(--kids); }
+  .tag.adults { background: var(--adults-bg); color: var(--adults); }
+  .tag.cat { background: var(--yellow); color: #5c3d05; }
+  .tag.when { background: var(--primary); color: #fff; }
+  .heart { flex: none; align-self: flex-start; background: none; border: none; font-size: 18px; cursor: pointer; padding: 2px; color: #c7d2dc; }
+  .heart.on { color: var(--orange); }
+
+  .group { margin-bottom: 6px; }
+
+  /* ---------- explore map ---------- */
+  .map-wrap { padding: 0 18px; }
+  #exploreMap { width: 100%; height: 62vh; min-height: 320px; border-radius: 16px; border: 1px solid var(--line); background: #e7eef5; }
+  .pf-pin { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--primary); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(15,36,56,0.35); display:flex; align-items:center; justify-content:center; }
+  .pf-pin span { transform: rotate(45deg); font-size: 15px; }
+  .pf-pin.cat-artes { background: #b5780f; }
+  .pf-pin.cat-movimento { background: #1f6b3d; }
+  .pf-pin.cat-oficinas { background: var(--primary); }
+  .pf-pin.cat-outro { background: #7a4fae; }
+  .map-popup { min-width: 170px; }
+  .map-popup .mp-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 3px; line-height: 1.3; }
+  .map-popup .mp-meta { font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height: 1.4; }
+  .map-popup button { width: 100%; font-size: 12px; font-weight: 700; padding: 7px 0; border-radius: 8px; border: none; background: var(--primary); color: #fff; cursor: pointer; font-family: inherit; }
+  .leaflet-popup-content { margin: 10px 12px; }
+
+  /* ---------- nav ---------- */
+  .navbar { flex: none; display:flex; padding: 10px 6px calc(env(safe-area-inset-bottom, 0px) + 10px); background: #f2ecc4; border-top: 1px solid var(--line); position: relative; }
+  .navitem { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size: 10px; font-weight: 800; background: none; border: none; color: var(--muted); font-family: inherit; cursor: pointer; padding: 4px 0; z-index: 1; }
+  .navitem .ic { font-size: 18px; }
+  .navitem.active { color: var(--primary); }
+
+  /* ---------- detail modal ---------- */
+  .modal-backdrop {
+    position: absolute; inset: 0; background: rgba(15,36,56,0.4);
+    display: none; align-items: flex-end; z-index: 20;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: #fff; width: 100%; max-height: 86%; overflow-y: auto;
+    border-radius: 22px 22px 0 0; padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 24px);
+    border: 2px solid var(--primary); border-bottom: none;
+  }
+  .modal-handle { width: 36px; height: 4px; background: var(--line); border-radius: 999px; margin: 8px auto 14px; }
+  .modal .m-thumb { width: 100%; height: 120px; border-radius: 14px; background: #e7eef5; display:flex; align-items:center; justify-content:center; font-size: 40px; margin-bottom: 14px; position: relative; }
+  .modal .m-thumb .heart { position:absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.85); border-radius: 50%; }
+  .modal h2 { font-size: 18px; margin: 4px 0 8px; color: var(--primary); }
+  .modal .m-meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+  .modal .m-meta .pin { color: var(--orange); }
+  .modal .m-tags { display:flex; gap:6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .modal .m-desc { font-size: 13.5px; line-height: 1.6; color: var(--ink); margin-bottom: 16px; }
+  .modal .m-actions { display:flex; gap: 10px; }
+  .btn { flex:1; text-align:center; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 700; border: none; font-family: inherit; cursor: pointer; text-decoration: none; display:block; }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.ghost { background: #eef3f8; color: var(--primary); }
+
+  /* ---------- profile ---------- */
+  .profile-card { margin: 6px 18px 14px; background: var(--card); border: 2px solid var(--primary); border-radius: 16px; padding: 16px; }
+  .profile-card h3 { font-size: 13.5px; margin: 0 0 6px; color: var(--primary); }
+  .profile-card p { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin: 0 0 10px; }
+  .profile-card a.btn { display:block; }
+  .profile-card.solid { background: var(--primary); border-color: var(--primary); }
+  .profile-card.solid h3, .profile-card.solid p { color: #fff; }
+  .profile-card.legal { background: var(--yellow); border-color: var(--yellow); }
+  .profile-card.legal p { color: #5c3d05; margin-bottom: 10px; }
+  .profile-card.legal p:last-child { margin-bottom: 0; }
+  .profile-card.legal b { color: #4a3000; }
+  .notif-toggle { display:flex; gap: 10px; margin-top: 6px; }
+  .notif-toggle button { width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 17px; cursor: pointer; display:flex; align-items:center; justify-content:center; font-family: inherit; }
+  .notif-toggle button.yes { background: var(--primary); color: #fff; }
+  .notif-toggle button.no { background: #f3b7a8; color: #8a2e1c; }
+  .notif-toggle button.dim { opacity: 0.45; }
+  .lang-toggle { display:flex; gap: 8px; margin-top: 4px; }
+  .lang-toggle button { flex:1; padding: 9px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--primary); font-weight: 700; font-size: 12.5px; font-family: inherit; cursor: pointer; }
+  .lang-toggle button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .install-banner {
+    margin: 10px 18px 0; background: var(--accent); color: #fff; border-radius: 12px;
+    padding: 10px 12px; font-size: 12px; display: none; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .install-banner.show { display: flex; }
+  .install-banner button { background: rgba(255,255,255,0.25); border: none; color: #fff; font-weight: 700; font-size: 11.5px; padding: 6px 10px; border-radius: 8px; font-family: inherit; cursor: pointer; }
+
+  .reminder-banner { margin: 10px 18px 0; background: var(--kids-bg); color: var(--kids); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; line-height: 1.4; display: none; align-items: center; gap: 8px; font-weight: 600; }
+  .reminder-banner.show { display: flex; }
+  .badge-soon { font-size: 9.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="app-header">
+    <button class="corner-ribbon" id="langRibbon"><span>PT</span></button>
+    <div class="brand-row">
+      <div class="brand">
+        <svg class="brand-logo" viewBox="0 0 40 46" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 5 C11 5 5 11 5 20 C5 29 20 42 20 42 C20 42 35 29 35 20 C35 11 29 5 20 5 Z" fill="#fff" stroke="#2f62a8" stroke-width="3.2"/>
+          <circle cx="20" cy="20" r="7" fill="none" stroke="#2f62a8" stroke-width="3"/>
+          <circle cx="20" cy="20" r="3" fill="#e8611f"/>
+          <ellipse cx="15" cy="4.5" rx="5" ry="3" fill="#e8611f" transform="rotate(-18 15 4.5)"/>
+        </svg>
+        <span class="brand-word"><b>MINI</b><span class="mapp">mapp</span></span>
+      </div>
+      <div class="city-pill-wrap" id="cityPillWrap">
+        <button class="city-pill" id="cityPillBtn"><span id="cityPillLabel">Porto</span><span class="car">▾</span></button>
+        <div class="city-menu" id="cityMenu" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-controls" id="filterControls">
+    <div class="icon-row">
+      <div class="search-pill">
+        <input id="searchInput" placeholder="Procurar eventos, locais…" />
+        <span class="sic">⌕</span>
+      </div>
+      <button class="filtros-btn" id="filtrosBtn" aria-label="Filtros" title="Filtros">☰</button>
+    </div>
+    <div class="active-chips" id="activeChips"></div>
+  </div>
+
+  <div class="install-banner" id="installBanner">
+    <span>Instala esta app no teu telemóvel para acesso rápido.</span>
+    <button id="installBtn">Instalar</button>
+  </div>
+
+  <div class="reminder-banner" id="reminderBanner"></div>
+
+  <div class="content" id="content"></div>
+
+  <div class="navbar">
+    <button class="navitem active" data-tab="home"><span class="ic">🏠</span>Início</button>
+    <button class="navitem" data-tab="saved"><span class="ic">♥</span>Guardados</button>
+    <button class="navitem" data-tab="profile"><span class="ic">👤</span>Perfil</button>
+  </div>
+
+  <div class="filter-overlay-backdrop" id="filterOverlayBackdrop">
+    <div class="filter-panel" id="filterPanel"></div>
+  </div>
+
+  <div class="stepper-backdrop" id="stepperBackdrop">
+    <div class="stepper-card" id="stepperCard"></div>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ===================== DATA ===================== */
+const CATEGORIES = [
+  { key: 'artes',     label: 'Artes',     label_en: 'Arts',      icon: '🎨' },
+  { key: 'movimento', label: 'Movimento', label_en: 'Movement',  icon: '🤸' },
+  { key: 'oficinas',  label: 'Oficinas',  label_en: 'Workshops', icon: '🛠️' },
+  { key: 'outro',     label: 'Outro',     label_en: 'Other',     icon: '✨' },
+];
+function catLabel(c) { return state.lang === 'en' ? c.label_en : c.label; }
+
+const CITIES = [
+  { key: 'barcelona', name_pt: 'Barcelona', name_en: 'Barcelona' },
+  { key: 'copenhaga', name_pt: 'Copenhaga', name_en: 'Copenhagen' },
+  { key: 'lisboa',    name_pt: 'Lisboa',    name_en: 'Lisbon' },
+  { key: 'londres',   name_pt: 'Londres',   name_en: 'London' },
+  { key: 'madrid',    name_pt: 'Madrid',    name_en: 'Madrid' },
+  { key: 'paris',     name_pt: 'Paris',     name_en: 'Paris' },
+  { key: 'porto',     name_pt: 'Porto',     name_en: 'Porto' },
+];
+function cityName(c) { return state.lang === 'en' ? c.name_en : c.name_pt; }
+function currentCity() { return CITIES.find(c => c.key === state.city) || CITIES[CITIES.length - 1]; }
+function cityHasContent(key) { return EVENTS.some(e => e.city === key); }
+
+const EVENTS = [
+  { city: 'porto', id: 1, lat: 41.1476, lng: -8.6083, title: 'Hora do Conto — O Cavaleiro Corujinha', title_en: 'Storytime — The Little Owl Knight', venue: 'Livraria Bertrand, Rua de Santa Catarina', when: 'Sáb 15 ago, 16:00', when_en: 'Sat 15 Aug, 16:00', date: '2026-08-15', cat: 'oficinas', ageMin: 2, ageMax: 10, free: null, indoor: true, icon: '📖', audience: 'kids', ages: '2–10 anos', ages_en: 'Ages 2–10', desc: 'Sessão de contos para crianças na Livraria Bertrand — uma hora tranquila de histórias em família.', desc_en: 'A children\'s storytelling session at Livraria Bertrand — a calm hour of stories for the whole family.', source: null },
+  { city: 'porto', id: 2, lat: 41.0813, lng: -8.543, title: 'CSI na ponta dos dedos', title_en: 'CSI at Your Fingertips', venue: 'Parque Biológico de Gaia, Avintes', when: 'Sex 14 ago, 10:00', when_en: 'Fri 14 Aug, 10:00', date: '2026-08-14', cat: 'oficinas', ageMin: 6, ageMax: 12, free: true, indoor: false, icon: '🔬', audience: 'kids', ages: '6–12 anos', ages_en: 'Ages 6–12', desc: 'Atividade "Ciência Viva no Verão": as crianças tornam-se detetives e aprendem técnicas simples de recolha de impressões digitais.', desc_en: 'A "Ciência Viva no Verão" activity: kids become detectives and learn simple fingerprint-collection techniques.', source: 'https://www.cienciaviva.pt/verao/' },
+  { city: 'porto', id: 3, lat: 41.1589, lng: -8.6307, title: 'Sandra Cristina — Fado', title_en: 'Sandra Cristina — Fado', venue: 'Casa da Música, Sala 2', when: 'Sex 14 ago, 18:00', when_en: 'Fri 14 Aug, 18:00', date: '2026-08-14', cat: 'artes', ageMin: 18, ageMax: null, free: false, indoor: true, icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Concerto de fado. Bilhete €14.', desc_en: 'Fado concert. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
+  { city: 'porto', id: 4, lat: 41.152, lng: -8.5985, title: 'Pintura em Azulejo', title_en: 'Tile Painting', venue: 'doBarro, Rua da Alegria 246', when: 'Seg 17 ago', when_en: 'Mon 17 Aug', date: '2026-08-17', cat: 'artes', ageMin: 0, ageMax: null, free: null, indoor: true, icon: '🏺', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Workshop de pintura de azulejos para crianças, num atelier independente do Porto.', desc_en: 'A tile-painting workshop for kids, at an independent atelier in Porto.', source: 'https://www.dobarro.art/' },
+  { city: 'porto', id: 5, lat: 41.152, lng: -8.5985, title: 'Zine — Histórias que se Desdobram', title_en: 'Zine — Unfolding Stories', venue: 'doBarro, Rua da Alegria 246', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'artes', ageMin: 0, ageMax: null, free: null, indoor: true, icon: '📔', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Atividade de criação de pequenos livros ilustrados ("zines") para crianças.', desc_en: 'A zine-making activity (small illustrated booklets) for kids.', source: 'https://www.dobarro.art/' },
+  { city: 'porto', id: 6, lat: 41.165, lng: -8.592, title: 'Laboratório de Design, Criação e Experimentação', title_en: 'Design, Creation & Experimentation Lab', venue: 'ACASO, atelier criativo, Rua de Costa Cabral 622', when: '14–22 ago (várias turmas)', when_en: '14–22 Aug (multiple sessions)', dateStart: '2026-08-14', dateEnd: '2026-08-22', cat: 'artes', ageMin: 3, ageMax: 15, free: null, indoor: true, icon: '✂️', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Oficinas de design e experimentação criativa, em turmas ao longo da semana.', desc_en: 'Creative design and experimentation workshops, running in sessions through the week.', source: 'https://www.instagram.com/acaso_ateliercriativo/' },
+  { city: 'porto', id: 7, lat: 41.209, lng: -8.688, title: '"Dominguinhos" com sabor a verão', title_en: 'Summer-Flavoured "Dominguinhos"', venue: 'MAR Shopping, Matosinhos', when: 'Dom 16 ago', when_en: 'Sun 16 Aug', date: '2026-08-16', cat: 'oficinas', ageMin: 0, ageMax: null, free: true, indoor: true, icon: '☀️', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Tarde de "domingos de verão" com ciência, histórias e imaginação para crianças.', desc_en: 'A "summer Sundays" afternoon of science, stories and imagination for kids.', source: null },
+  { city: 'porto', id: 8, lat: 41.1728, lng: -8.666, title: 'Eucaliptos em Aguarela', title_en: 'Eucalyptus in Watercolour', venue: 'Parque de São Roque', when: 'Dom 16 ago, 16:00', when_en: 'Sun 16 Aug, 16:00', date: '2026-08-16', cat: 'artes', ageMin: 0, ageMax: null, free: null, indoor: false, icon: '🎨', audience: 'kids', ages: 'Todas as idades', ages_en: 'All ages', desc: 'Workshop de aguarela ao ar livre, aberto a todas as idades.', desc_en: 'An outdoor watercolour workshop, open to all ages.', source: null },
+  { city: 'porto', id: 9, lat: 41.1495, lng: -8.604, title: 'Roda de Samba', title_en: 'Samba Circle', venue: 'Clover by Trevo, Rua do Paraíso 202', when: 'Dom 16 ago, 17:00', when_en: 'Sun 16 Aug, 17:00', date: '2026-08-16', cat: 'artes', ageMin: 0, ageMax: null, free: null, indoor: true, icon: '🥁', audience: 'kids', ages: 'Todas as idades', ages_en: 'All ages', desc: 'Música e dança brasileira ao vivo, aberto a todas as idades.', desc_en: 'Live Brazilian music and dance, open to all ages.', source: 'https://trevo.eatbu.com/' },
+  { city: 'porto', id: 10, lat: 41.1589, lng: -8.6307, title: 'Touriga', title_en: 'Touriga', venue: 'Casa da Música, Sala 2', when: 'Ter 18 ago, 18:00', when_en: 'Tue 18 Aug, 18:00', date: '2026-08-18', cat: 'artes', ageMin: 18, ageMax: null, free: false, indoor: true, icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Música tradicional portuguesa contemporânea. Bilhete €14.', desc_en: 'Contemporary traditional Portuguese music. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
+  { city: 'porto', id: 11, lat: 41.1589, lng: -8.6307, title: 'Pedro Ferreira — Fado', title_en: 'Pedro Ferreira — Fado', venue: 'Casa da Música, Sala 2', when: 'Qua 19 ago, 18:00', when_en: 'Wed 19 Aug, 18:00', date: '2026-08-19', cat: 'artes', ageMin: 18, ageMax: null, free: false, indoor: true, icon: '🎻', audience: 'adults', ages: null, ages_en: null, desc: 'Concerto de fado. Bilhete €14.', desc_en: 'Fado concert. Ticket €14.', source: 'https://casadamusica.com/agenda/' },
+  { city: 'porto', id: 12, lat: 41.1409, lng: -8.6118, title: 'Visita ao Centro Histórico', title_en: 'Historic Centre Walking Tour', venue: 'Centro Histórico do Porto', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'outro', ageMin: 18, ageMax: null, free: true, indoor: false, icon: '🏛️', audience: 'adults', ages: null, ages_en: null, desc: '"Ciclo de Visitas ao Centro Histórico" — tour gratuito.', desc_en: 'A free "Historic Centre Tour Series" walking tour.', source: null },
+  { city: 'porto', id: 13, lat: 41.153, lng: -8.588, title: 'Algas, Têxteis e Ecologia', title_en: 'Algae, Textiles & Ecology', venue: 'MANYWHERE Gallery, R. do Duque da Terceira 358', when: 'Sáb 15 ago, 10:00', when_en: 'Sat 15 Aug, 10:00', date: '2026-08-15', cat: 'artes', ageMin: 18, ageMax: null, free: null, indoor: true, icon: '🧶', audience: 'adults', ages: null, ages_en: null, desc: 'Workshop de criação de fio a partir de algas.', desc_en: 'A workshop on making yarn from seaweed.', source: 'https://manywheregallery.com/' },
+  { city: 'porto', id: 14, lat: 41.1448, lng: -8.6068, title: 'Booze n\' Brains Brunch', title_en: 'Booze n\' Brains Brunch', venue: 'Look Sharp Café, R. de Cimo de Vila 41', when: 'Sáb 15 ago', when_en: 'Sat 15 Aug', date: '2026-08-15', cat: 'outro', ageMin: 18, ageMax: null, free: false, indoor: true, icon: '🥐', audience: 'adults', ages: null, ages_en: null, desc: 'Brunch com trivia para adultos.', desc_en: 'Brunch with trivia, for adults.', source: 'http://www.look-sharp.net/' },
+  { city: 'porto', id: 15, lat: 41.0813, lng: -8.543, title: 'Zoo de Santo Inácio', title_en: 'Santo Inácio Zoo', venue: 'Avintes, Vila Nova de Gaia', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: false, icon: '🦁', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Zoo com bilhetes sem filas disponíveis — atividades focadas em animais.', desc_en: 'A zoo with skip-the-line tickets available — animal-focused activities.', source: 'https://www.zoosantoinacio.com/' },
+  { city: 'porto', id: 16, lat: 41.169, lng: -8.69, title: 'SEA LIFE Porto', title_en: 'SEA LIFE Porto', venue: 'Castelo do Queijo', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🐠', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Aquário com experiências sobre vida marinha.', desc_en: 'An aquarium with marine-life experiences.', source: 'https://www.visitsealife.com/porto/' },
+  { city: 'porto', id: 17, lat: 41.1618, lng: -8.607, title: 'Aulas de Natação — bebés e crianças', title_en: 'Swimming Lessons — Babies & Kids', venue: 'Piscina Municipal da Constituição (Ágora)', when: 'Seg–Sex, várias turmas', when_en: 'Mon–Fri, multiple sessions', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: 12, free: false, indoor: true, icon: '🏊', audience: 'kids', ages: 'Bebés a 12 anos', ages_en: 'Babies to 12', desc: 'Aulas de natação municipais para bebés e crianças — verificar horários e inscrições na rede municipal de piscinas.', desc_en: 'Municipal swimming lessons for babies and kids — check schedules and enrolment with the municipal pool network.', source: 'https://desporto.agoraporto.pt/' },
+  { city: 'porto', id: 18, lat: 41.15, lng: -8.593, title: 'Playtime — Knock-Knock Family Club', title_en: 'Playtime — Knock-Knock Family Club', venue: 'Rua Duque de Saldanha 186, Bonfim', when: 'Semanal (consultar agenda)', when_en: 'Weekly (check schedule)', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: 6, free: false, indoor: true, icon: '🧸', audience: 'kids', ages: '0–6 anos', ages_en: 'Ages 0–6', desc: 'Sessões de brincadeira livre para bebés e crianças pequenas, num espaço familiar independente em Bonfim.', desc_en: 'Free-play sessions for babies and young children, at an independent family space in Bonfim.', source: 'https://www.knock-knock.pt/' },
+  { city: 'porto', id: 19, lat: 41.15, lng: -8.575, title: 'Yoga para Crianças', title_en: 'Kids\' Yoga', venue: 'Quinta do Mitra — Associação Terra Solta, Campanhã', when: 'Sáb (consultar agenda)', when_en: 'Sat (check schedule)', ongoing: true, cat: 'movimento', ageMin: 3, ageMax: 15, free: null, indoor: false, icon: '🧘', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Sessão de yoga para crianças e jovens, numa quinta pedagógica urbana independente. Confirma sempre o horário atual diretamente com a associação antes de ir.', desc_en: 'A yoga session for children and teens, at an independent urban pedagogical farm. Always confirm the current schedule directly with the association before going.', source: 'https://terrasolta.org/' },
+  { city: 'porto', id: 20, lat: 41.168, lng: -8.644, title: 'Jumpers Trampoline Park', title_en: 'Jumpers Trampoline Park', venue: 'Rua Engenheiro Ferreira Dias 874, Porto', when: 'Todos os dias (ver horário)', when_en: 'Every day (check hours)', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🤾', audience: 'kids', ages: 'Zona de bebés + família', ages_en: 'Baby zone + family', desc: 'Parque de trampolins e aventura com Ninja Challenge, arena de futebol, parede interativa, airbag, escalada (The Rock) e uma Toddler Zone para os mais pequenos. Também organiza festas de aniversário.', desc_en: 'A trampoline and adventure park with a Ninja Challenge, football arena, interactive wall, airbag, climbing (The Rock) and a Toddler Zone for the youngest kids. Also hosts birthday parties.', source: 'https://www.jumpers.pt/en' },
+  { city: 'porto', id: 21, lat: 41.215, lng: -8.69, title: 'JumpYard Matosinhos', title_en: 'JumpYard Matosinhos', venue: 'Rua Abade Mondego 241, Perafita, Matosinhos', when: 'Todos os dias (ver horário)', when_en: 'Every day (check hours)', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🤸', audience: 'kids', ages: 'Todas as idades + KidsZone', ages_en: 'All ages + KidsZone', desc: 'Parque de trampolins com SkyRider, Clip \'N Climb, percurso Ninja, Jump Tower e uma KidsZone de motricidade para crianças pequenas. Também organiza festas de aniversário e grupos escolares.', desc_en: 'A trampoline park with SkyRider, Clip \'N Climb, a Ninja course, Jump Tower and a motor-skills KidsZone for younger children. Also hosts birthday parties and school groups.', source: 'https://jumpyard.pt/matosinhos/pagina-inicial/' },
+  { city: 'porto', id: 22, lat: 41.1477, lng: -8.628, title: 'Feira do Livro do Porto 2026', title_en: 'Porto Book Fair 2026', venue: 'Jardins do Palácio de Cristal', when: '21 ago–6 set', when_en: '21 Aug–6 Sep', dateStart: '2026-08-21', dateEnd: '2026-09-06', cat: 'oficinas', ageMin: 1.5, ageMax: null, free: true, indoor: false, icon: '📚', audience: 'kids', ages: 'A partir dos 18 meses', ages_en: 'From 18 months', desc: '83 sessões e 112 horas de atividades para bebés, crianças, jovens e famílias — teatro, música, marionetas, oficinas criativas, hora do conto e jogos tradicionais. Entrada gratuita.', desc_en: '83 sessions and 112 hours of activities for babies, children, teens and families — theatre, music, puppet shows, creative workshops, storytime and traditional games. Free entry.', source: 'https://agendaculturalporto.org/eventos/feira-do-livro-do-porto-2026-regressa-aos-jardins-do-palacio-de-cristal-com-homenagem-a-ines-lourenco/' },
+  { city: 'porto', id: 23, lat: 41.1477, lng: -8.628, title: 'Sábados a Contar', title_en: 'Storytelling Saturdays', venue: 'Biblioteca Municipal Almeida Garrett (Sala Infantil)', when: 'Sáb (consultar agenda)', when_en: 'Sat (check schedule)', ongoing: true, cat: 'oficinas', ageMin: 3, ageMax: 6, free: true, indoor: true, icon: '📖', audience: 'kids', ages: '3–6 anos', ages_en: 'Ages 3–6', desc: 'Hora do conto seguida de uma oficina criativa para pequenos leitores e as suas famílias, nas Bibliotecas Municipais do Porto.', desc_en: 'A storytime hour followed by a creative workshop for young readers and their families, at Porto\'s municipal libraries.', source: 'https://www.agenda-porto.pt/en/evento/sabados-a-contar-1769783410450/' },
+  { city: 'porto', id: 24, lat: 41.156, lng: -8.613, title: 'Cerâmica sensorial para bebés', title_en: 'Sensory Ceramics for Babies', venue: 'Oficina Josefina, Av. Camilo 224', when: 'Consultar agenda', when_en: 'Check schedule', ongoing: true, cat: 'artes', ageMin: 1.5, ageMax: 3, free: null, indoor: true, icon: '🏺', audience: 'kids', ages: '18–36 meses', ages_en: 'Ages 18–36 months', desc: 'Workshop sensorial de cerâmica para bebés e pequenos, num atelier independente de artes plásticas no Porto.', desc_en: 'A sensory ceramics workshop for babies and toddlers, at an independent visual-arts studio in Porto.', source: 'https://www.oficinajosefina.com/' },
+  { city: 'porto', id: 25, lat: 41.154, lng: -8.597, title: 'PlayLab Porto — sessões de brincar', title_en: 'PlayLab Porto — Play Sessions', venue: 'PlayLab Porto, R. de Alves Redol 386, Bonfim', when: 'Fins de semana', when_en: 'Weekends', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: 6, free: false, indoor: true, icon: '🧩', audience: 'kids', ages: '0–6 anos', ages_en: 'Ages 0–6', desc: 'Espaço independente de aprendizagem pela brincadeira: sessões de messy play, yoga bebé-mãe e grupos de brincar com histórias e música. Pago, por sessão.', desc_en: 'An independent play-based learning space: messy-play sessions, mother-baby yoga, and play groups combining stories and music. Paid, per session.', source: 'https://sites.google.com/view/playlabporto/home' },
+  { city: 'porto', id: 26, lat: 41.133, lng: -8.611, title: 'Oficinas de Artes na Casa-Museu Teixeira Lopes', title_en: 'Art Workshops at Casa-Museu Teixeira Lopes', venue: 'Casa-Museu Teixeira Lopes, Vila Nova de Gaia', when: 'Consultar agenda', when_en: 'Check schedule', ongoing: true, cat: 'artes', ageMin: 3, ageMax: 15, free: true, indoor: true, icon: '🖼️', audience: 'kids', ages: 'Crianças', ages_en: 'Kids', desc: 'Oficinas artísticas gratuitas para crianças, num pequeno museu-casa em Vila Nova de Gaia.', desc_en: 'Free artistic workshops for children, at a small house-museum in Vila Nova de Gaia.', source: 'https://agendaculturalporto.org/workshops-no-porto/' },
+  { city: 'porto', id: 27, lat: 41.17, lng: -8.609, title: 'Parque Infantil da Quinta do Covelo', title_en: 'Quinta do Covelo Playground', venue: 'Parque da Quinta do Covelo, R. de Bolama', when: 'Todos os dias, 7h–20h', when_en: 'Every day, 7am–8pm', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: true, indoor: false, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Um dos maiores parques infantis do Porto, dentro de jardins amplos, com café e casas de banho por perto. Entrada gratuita.', desc_en: 'One of Porto\'s largest playgrounds, set inside spacious gardens, with a café and restrooms nearby. Free entry.', source: null },
+  { city: 'porto', id: 28, lat: 41.1477, lng: -8.628, title: 'Parque Infantil dos Jardins do Palácio de Cristal', title_en: 'Crystal Palace Gardens Playground', venue: 'Jardins do Palácio de Cristal', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: true, indoor: false, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil dentro dos Jardins do Palácio de Cristal, com pavões e patos para observar e zonas de sombra — mesmo ao lado da Biblioteca Almeida Garrett. Entrada gratuita.', desc_en: 'A playground inside the Crystal Palace Gardens, with peacocks and ducks to watch and shaded rest areas — right next to the Almeida Garrett library. Free entry.', source: null },
+  { city: 'porto', id: 29, lat: 41.152, lng: -8.572, title: 'Parque Infantil do Parque Oriental da Cidade', title_en: 'Parque Oriental da Cidade Playground', venue: 'Parque Oriental da Cidade, Campanhã', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: true, indoor: false, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Um parque infantil muito amplo dentro de jardins tranquilos em Campanhã, com café e casas de banho perto. Entrada gratuita.', desc_en: 'A very spacious playground inside quiet gardens in Campanhã, with a café and restrooms nearby. Free entry.', source: null },
+  { city: 'porto', id: 30, lat: 41.155, lng: -8.672, title: 'Parque Infantil da Praia do Homem do Leme', title_en: 'Homem do Leme Beach Playground', venue: 'Av. de Montevideu 88, Porto', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: true, indoor: false, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil junto à frente marítima do Porto, boa paragem para combinar com um passeio pela marginal. Entrada gratuita.', desc_en: 'A playground right on Porto\'s seafront, a good stop to combine with a walk along the promenade. Free entry.', source: null },
+  { city: 'porto', id: 31, lat: 41.178, lng: -8.628, title: 'Parque Infantil do Jardim de Belém', title_en: 'Jardim de Belém Playground', venue: 'R. Carnide 86, Porto', when: 'Todos os dias', when_en: 'Every day', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: true, indoor: false, icon: '🛝', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque infantil de bairro, uma opção tranquila e menos concorrida para brincar ao ar livre. Entrada gratuita.', desc_en: 'A neighbourhood playground — a quieter, less busy option for outdoor play. Free entry.', source: null },
+  { city: 'porto', id: 32, lat: 41.19, lng: -8.628, title: 'The North Wall — Escalada', title_en: 'The North Wall — Climbing', venue: 'Rua do Tronco 375, Núcleo Empresarial Sarcol, Matosinhos', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🧗', audience: 'kids', ages: 'Família (zona de boulder para os mais pequenos com escorrega)', ages_en: 'Family (dedicated boulder area for the youngest, with a slide)', desc: 'Ginásio de escalada indoor com uma zona de boulder própria para os mais pequenos, incluindo um escorrega. Também tem escalada para adultos.', desc_en: 'An indoor climbing gym with its own boulder area for the youngest kids, including a slide. Also offers adult climbing.', source: 'https://www.instagram.com/thenorthwallclimbing/' },
+  { city: 'porto', id: 33, lat: 41.149, lng: -8.585, title: 'São Rock — Escalada Indoor', title_en: 'São Rock — Indoor Climbing', venue: 'Rua de Godim 312, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'movimento', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🧗', audience: 'kids', ages: 'Dos mais pequenos aos adultos', ages_en: 'From young kids to adults', desc: 'Espaço de escalada indoor independente, aberto a todas as idades — dos mais pequenos aos mais graúdos.', desc_en: 'An independent indoor climbing space, open to all ages — from young kids to grown-ups.', source: 'http://saorockclimbing.com/' },
+  { city: 'porto', id: 34, lat: 41.1367, lng: -8.6113, title: 'The Chocolate Story (WOW)', title_en: 'The Chocolate Story (WOW)', venue: 'WOW – World of Wine, Rua do Choupelo 39, Vila Nova de Gaia', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'oficinas', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🍫', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Museu interativo dedicado à história do chocolate, do grão à tablete, com uma fábrica de chocolate em funcionamento e prova incluída — dentro do bairro cultural WOW em Gaia.', desc_en: 'An interactive museum on the history of chocolate, from bean to bar, with a working chocolate factory and a tasting included — inside the WOW cultural district in Gaia.', source: 'https://www.wow.pt/' },
+  { city: 'porto', id: 35, lat: 41.1367, lng: -8.6113, title: 'Porto ao Longo dos Tempos (WOW)', title_en: 'Porto Region Across the Ages (WOW)', venue: 'WOW – World of Wine, Rua do Choupelo 39, Vila Nova de Gaia', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🚋', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Museu interativo sobre a história da região do Porto, com uma réplica em tamanho real de um elétrico icónico da cidade — dentro do bairro cultural WOW em Gaia.', desc_en: "An interactive museum on the history of the Porto region, featuring a full-size replica of the city's iconic tram — inside the WOW cultural district in Gaia.", source: 'https://www.wow.pt/' },
+  { city: 'porto', id: 36, lat: 41.1595, lng: -8.658, title: 'Parque e Museu de Serralves', title_en: 'Serralves Park & Museum', venue: 'Rua D. João de Castro 210, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: false, icon: '🌳', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Parque de 18 hectares com jardins, esculturas e o Passadiço das Copas das Árvores (Treetop Walk), junto ao Museu de Arte Contemporânea e à Casa de Serralves.', desc_en: 'An 18-hectare park with gardens, sculptures and the Treetop Walk, alongside the Contemporary Art Museum and Casa de Serralves.', source: 'https://www.serralves.pt/en/' },
+  { city: 'porto', id: 37, lat: 41.148, lng: -8.6115, title: 'Neonia — Museu Imersivo', title_en: 'Neonia — Immersive Museum', venue: 'Rua de Ceuta 116, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '💡', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Museu imersivo com 20 salas temáticas interativas que combinam arte, ciência e a história do Porto, com instalações de luz e néon — para famílias e exploradores de todas as idades.', desc_en: "An immersive museum with 20 interactive themed rooms combining art, science and Porto's history, with light and neon installations — for families and explorers of all ages.", source: 'https://neonia.com/' },
+  { city: 'porto', id: 38, lat: 41.1467, lng: -8.6146, title: 'Livraria Lello', title_en: 'Livraria Lello', venue: 'Rua das Carmelitas 144, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '📚', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'A icónica livraria neogótica do Porto, com a sua escadaria em espiral vermelha e claraboia em vitral — o bilhete de entrada é reembolsável na compra de um livro.', desc_en: "Porto's iconic neo-Gothic bookshop, with its red spiral staircase and stained-glass skylight — the entry ticket is redeemable against a book purchase.", source: 'https://livrarialello.pt/en/' },
+  { city: 'porto', id: 39, lat: 41.1465, lng: -8.6144, title: 'Wondersense — Museu dos Sentidos', title_en: 'Wondersense — Museum of the Senses', venue: 'Rua das Carmelitas 130, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '✨', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Museu interativo dos sentidos, com instalações de toque, som e luz — divertido para todas as idades. Entrada gratuita para crianças até aos 3 anos.', desc_en: 'An interactive museum of the senses, with touch, sound and light installations — fun for all ages. Free entry for children under 3.', source: 'https://booking.visitportoandnorth.travel/en/experiences/wondersense/wondersense-immersive-sensorial-museum-porto/' },
+  { city: 'porto', id: 40, lat: 41.1387, lng: -8.6193, title: 'Porto Legends — The Underground Experience', title_en: 'Porto Legends — The Underground Experience', venue: 'Immersivus Gallery, Edifício da Alfândega, Rua Nova da Alfândega, Porto', when: 'Ter–Dom, sessões de 60 min', when_en: 'Tue–Sun, 60-min sessions', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🕹️', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Experiência imersiva de realidade virtual e projeção 360° sobre as lendas escondidas do Porto — para famílias, casais e grupos de amigos.', desc_en: "An immersive VR and 360° projection experience exploring Porto's hidden legends — for families, couples and groups of friends.", source: 'https://portugalagenda.com/en/shows/porto-legends/' },
+  { city: 'porto', id: 41, lat: 41.14, lng: -8.621, title: 'World of Discoveries', title_en: 'World of Discoveries', venue: 'Rua de Miragaia, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '⛵', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Museu interativo e parque temático que recria as viagens dos navegadores portugueses, com vinte áreas temáticas e um passeio de barco.', desc_en: 'An interactive museum and theme park recreating the voyages of the Portuguese navigators, with twenty themed areas and a boat ride.', source: 'https://www.visitar-porto.com/en/what-to-do/culture/museums/world-of-discoveries-porto.html' },
+  { city: 'porto', id: 42, lat: 41.1443, lng: -8.636, title: 'Museu do Carro Eléctrico', title_en: 'Tram Museum', venue: 'Alameda Basílio Teles 51, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🚃', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Museu dedicado à história dos elétricos do Porto, junto ao rio, numa antiga central elétrica — inclui elétricos históricos restaurados.', desc_en: "A museum dedicated to the history of Porto's trams, by the river in a former power station — featuring restored historic trams.", source: 'https://www.tripadvisor.com/Attraction_Review-g189180-d2617152-Reviews-Museu_do_Carro_Electrico-Porto_Porto_District_Northern_Portugal.html' },
+  { city: 'porto', id: 43, lat: 41.1456, lng: -8.6142, title: 'Torre dos Clérigos', title_en: 'Clérigos Tower', venue: 'Rua de São Filipe de Nery, Porto', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'outro', ageMin: 7, ageMax: null, free: false, indoor: true, icon: '🗼', audience: 'kids', ages: 'Crianças maiores (225 degraus)', ages_en: 'Older children (225 steps)', desc: 'Torre icónica do Porto, com 225 degraus em espiral até ao topo e uma vista panorâmica sobre a cidade — recomendada para crianças já capazes de subir a escadaria sozinhas.', desc_en: "Porto's iconic bell tower, with 225 spiral steps to the top and a panoramic view over the city — best for children old enough to manage the staircase on their own.", source: 'https://fernandolopes.pt/en/horarios-precos-torre-clerigos/' },
+  { city: 'porto', id: 44, lat: 41.1432, lng: -8.6132, title: 'Museu das Marionetas do Porto', title_en: 'Porto Puppet Museum', venue: 'Rua das Flores 22, Porto', when: 'Seg–Sáb, 11:00–13:00 e 14:00–18:00', when_en: 'Mon–Sat, 11am–1pm and 2–6pm', ongoing: true, cat: 'outro', ageMin: 0, ageMax: null, free: null, indoor: true, icon: '🎭', audience: 'kids', ages: 'Família', ages_en: 'Family', desc: 'Museu com as marionetas do Teatro de Marionetas do Porto, incluindo bonecos de espetáculos como "Cinderela" e "Macbeth", criados por João Paulo Seara Cardoso.', desc_en: 'A museum showing the puppets of Teatro de Marionetas do Porto, including characters from shows like "Cinderela" and "Macbeth," created by João Paulo Seara Cardoso.', source: 'https://marionetasdoporto.pt/en/museu-das-marionetas-do-porto/' },
+  { city: 'porto', id: 45, lat: 41.183, lng: -8.689, title: 'Domingos Constrói — Oficina para Famílias', title_en: 'Building Sundays — Family Workshop', venue: 'Casa da Arquitectura, Avenida Menéres 456, Matosinhos', when: 'Dom 6 set, 10:00–12:00', when_en: 'Sun 6 Sep, 10:00 AM–12:00 PM', date: '2026-09-06', cat: 'oficinas', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🏗️', audience: 'kids', ages: 'Família (pensada para os 5–12 anos)', ages_en: 'Family (designed for ages 5–12)', desc: 'Oficina mensal de arquitetura para famílias, no primeiro domingo de cada mês: construção de maquetas, pintura, modelagem e ilustração de histórias em grande formato. Sem marcação prévia — €3 por participante, pago na bilheteira.', desc_en: 'A monthly family architecture workshop, held the first Sunday of each month: building scale models, painting, modelling and large-format story illustration. No advance booking needed — €3 per participant, paid at the box office.', source: 'https://casadaarquitetura.pt/pt/servico-educativo/oficinas/oficinas-para-familias-primeiro-domingo-de-cada-mes-2030-04-20' },
+  { city: 'porto', id: 46, lat: 41.1387, lng: -8.6193, title: 'Dino Experience', title_en: 'Dino Experience', venue: 'Centro de Congressos da Alfândega do Porto, Rua Nova da Alfândega, Porto', when: 'Ter–Sex 14:00–18:00, Fim de semana 10:00–18:00, até 4 out', when_en: 'Tue–Fri 2–6pm, weekends 10am–6pm, until Oct 4', dateStart: '2026-08-13', dateEnd: '2026-10-04', cat: 'outro', ageMin: 0, ageMax: null, free: false, indoor: true, icon: '🦕', audience: 'kids', ages: 'Família (entrada grátis até aos 3 anos)', ages_en: 'Family (free entry under age 4)', desc: 'A grande experiência imersiva digital que ocupou o espaço da anterior "Living Van Gogh" nas Caves da Alfândega — projeções 360°, realidade virtual, sons e um percurso interativo pelo mundo dos dinossauros. Bilhetes: adultos €12–14, crianças (4–17) €10–12, grátis até aos 3 anos.', desc_en: 'The large immersive digital experience that has taken over the space of the previous "Living Van Gogh" show in the Alfândega Caves — 360° projections, virtual reality, sound installations and an interactive dinosaur-world trail. Tickets: adults €12–14, children (4–17) €10–12, free under 4.', source: 'https://www.ccalfandegaporto.com/pt/agenda/dino-experience/' },
+  { city: 'porto', id: 47, lat: 41.1481, lng: -8.6152, title: 'Minigolf Porto (Indoor)', title_en: 'Minigolf Porto (Indoor)', venue: 'R. do Dr. Alfredo Magalhães 24, Porto', when: 'Todos os dias, 12:00–23:00', when_en: 'Every day, 12:00 PM–11:00 PM', ongoing: true, cat: 'movimento', ageMin: 4, ageMax: null, free: false, indoor: true, icon: '⛳', audience: 'kids', ages: 'A partir dos 4 anos (grátis até aos 3)', ages_en: 'Ages 4+ (free under 3)', desc: 'Minigolfe indoor no centro do Porto, perto da Cordoaria — 18 buracos em dois pisos (com zona de luz natural e uma zona UV/neon), mais jogos de mesa e bar/snacks. Bilhetes: crianças (4–12) €15, jovens/adultos (13+) €17 — é preciso pelo menos um adulto pagante por cada 4 crianças.', desc_en: 'Indoor minigolf in central Porto, near Cordoaria — 18 holes over two floors (a natural-light zone and a UV/neon zone), plus table games and a snack bar. Tickets: children (4–12) €15, teens/adults (13+) €17 — at least one paying adult is required per 4 children.', source: 'https://minigolfporto.com/' },
+  { city: 'porto', id: 48, lat: 41.1478, lng: -8.6729, title: 'Clube de Minigolfe do Porto (Petergolf)', title_en: 'Clube de Minigolfe do Porto (Petergolf)', venue: 'Jardim do Passeio Alegre, Av. de Dom Carlos I, Foz do Douro', when: 'Consultar horário', when_en: 'Check hours', ongoing: true, cat: 'movimento', ageMin: 4, ageMax: null, free: false, indoor: false, icon: '⛳', audience: 'kids', ages: 'A partir dos 4 anos', ages_en: 'Ages 4+', desc: 'Campo de minigolfe ao ar livre à sombra de árvores, junto ao Jardim do Passeio Alegre perto da Foz — 18 buracos, com um percurso "Petergolf" mais fácil e divertido para os mais novos. Muito económico: cerca de €1,50 (até aos 13 anos) / €2,50 (outras idades) por jogo. Bom para combinar com um passeio no parque ou perto da praia.', desc_en: 'An outdoor, tree-shaded minigolf course by the Jardim do Passeio Alegre near Foz do Douro — 18 holes, with an easier, more fun "Petergolf" course for younger kids. Very affordable: around €1.50 (up to age 13) / €2.50 (other ages) per round. Good to combine with a walk in the park or a trip to the nearby beach.', source: 'https://clubeminigolfeporto.com/' },
+];
+
+function evTitle(ev) { return state.lang === 'en' ? ev.title_en : ev.title; }
+function evWhen(ev)  { return state.lang === 'en' ? ev.when_en  : ev.when; }
+function evAges(ev)  { return state.lang === 'en' ? ev.ages_en  : ev.ages; }
+function evDesc(ev)  { return state.lang === 'en' ? ev.desc_en  : ev.desc; }
+
+const MONTHS = {
+  pt: ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'],
+  en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+};
+const WEEKDAYS = {
+  pt: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+  en: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+};
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const lang = state.lang;
+  return `${WEEKDAYS[lang][d.getDay()]} ${d.getDate()} ${MONTHS[lang][d.getMonth()]}`;
+}
+
+/* ===================== TRANSLATIONS (UI chrome) ===================== */
+const T = {
+  pt: {
+    searchPlaceholder: 'Procurar eventos, locais…',
+    ageBadge: '2–15 anos',
+    ageFilterLabel: 'Idades', ageFilterHint: 'Ainda não adicionaste nenhuma criança.',
+    ageFilterPlaceholder: 'Idade em anos', ageFilterPlaceholderSibling: 'Idade do irmão/irmã', ageFilterAdd: 'Adicionar irmão/irmã',
+    dateAll: 'Todas as datas', dateToday: 'Hoje',
+    dateWeekend: 'Fim de semana', datePick: '📅 Escolher data',
+    dateAllLabel: 'Todas as datas', dateWeekendLabel: 'Este fim de semana',
+    navHome: 'Início', navExplore: 'Explorar', navSaved: 'Guardados', navProfile: 'Perfil',
+    viewList: 'Lista', viewMap: 'Mapa', viewDetails: 'Ver detalhes', mapUnavailable: 'Mapa indisponível offline — liga-te à internet para o ver.',
+    emptyFilters: 'Sem eventos para estes filtros ainda.', emptyFiltersHint: 'Experimenta remover um filtro.',
+    savedLabel: 'Guardados', emptySaved: 'Ainda não guardaste nenhum evento.', emptySavedHint: 'Toca no ♡ num evento para o guardar aqui.',
+    tagAdults: 'Adultos', tagKidsFallback: 'Crianças',
+    modalSaveOff: '♡ Guardar', modalSaveOn: '♥ Guardado',
+    viewSource: 'Ver fonte', noSourceLink: 'Sem link direto',
+    profileAboutTitle: 'Sobre a app',
+    profileAboutText: 'Porto em Família reúne, num só sítio, o que se passa no Porto para famílias, crianças (2–15 anos) e adultos — desde grandes instituições a pequenos ateliers e associações independentes.',
+    profileLangTitle: 'Idioma',
+    profileSuggestTitle: 'Conheces um evento ou espaço que devíamos incluir?',
+    profileSuggestText: 'Sugere-nos diretamente — especialmente organizações pequenas ou independentes, que são as mais difíceis de encontrar sozinhos.',
+    profileSuggestBtn: 'Sugerir um evento',
+    installText: 'Instala esta app no teu telemóvel para acesso rápido.', installBtn: 'Instalar',
+    reminderToday: 'É hoje! Tens guardado:', reminderTomorrow: 'É amanhã! Tens guardado:',
+    badgeToday: 'Hoje', badgeTomorrow: 'Amanhã',
+    chipFree: 'Grátis', chipIndoor: 'Interior', chipOutdoor: 'Exterior',
+    filtrosTitle: 'Filtros', fpWhere: 'donde', fpActivityType: 'tipo de atividade', fpDate: 'data',
+    cityComingSoon: 'Ainda estamos a preparar o conteúdo para {city}. Volta em breve!',
+    profileNotifTitle: 'Notificações', profileNotifText: 'Esta opção permite que a aplicação envie um lembrete 1 dia e 2 horas antes do evento guardado.',
+    legalText1: 'Esta aplicação apenas reúne e organiza informações sobre atividades e eventos para crianças. <b>Não organiza, produz nem é responsável por nenhum dos eventos ou atividades mencionados.</b>',
+    legalText2: 'Embora procuremos manter a informação o mais atualizada possível, recomendamos que <b>confirme sempre os detalhes diretamente com o organizador</b> (horários, preços, inscrições, cancelamentos, etc.). A responsabilidade final pela realização e condições de cada evento é inteiramente do seu organizador.',
+  },
+  en: {
+    searchPlaceholder: 'Search events, places…',
+    ageBadge: 'Ages 2–15',
+    ageFilterLabel: 'Ages', ageFilterHint: "You haven't added any children yet.",
+    ageFilterPlaceholder: 'Age in years', ageFilterPlaceholderSibling: "Sibling's age", ageFilterAdd: 'Add sibling',
+    dateAll: 'All dates', dateToday: 'Today',
+    dateWeekend: 'Weekend', datePick: '📅 Pick a date',
+    dateAllLabel: 'All dates', dateWeekendLabel: 'This weekend',
+    navHome: 'Home', navExplore: 'Explore', navSaved: 'Saved', navProfile: 'Profile',
+    viewList: 'List', viewMap: 'Map', viewDetails: 'View details', mapUnavailable: 'Map unavailable offline — connect to the internet to see it.',
+    emptyFilters: 'No events for these filters yet.', emptyFiltersHint: 'Try removing a filter.',
+    savedLabel: 'Saved', emptySaved: "You haven't saved any events yet.", emptySavedHint: 'Tap the ♡ on an event to save it here.',
+    tagAdults: 'Adults', tagKidsFallback: 'Kids',
+    modalSaveOff: '♡ Save', modalSaveOn: '♥ Saved',
+    viewSource: 'View source', noSourceLink: 'No direct link',
+    profileAboutTitle: 'About the app',
+    profileAboutText: 'Porto em Família brings together, in one place, what\'s on in Porto for families, kids (ages 2–15) and adults — from big institutions to small ateliers and independent associations.',
+    profileLangTitle: 'Language',
+    profileSuggestTitle: 'Know an event or place we should include?',
+    profileSuggestText: 'Suggest it to us directly — especially small or independent organisations, which are the hardest to find on our own.',
+    profileSuggestBtn: 'Suggest an event',
+    installText: 'Install this app on your phone for quick access.', installBtn: 'Install',
+    reminderToday: "It's today! You have saved:", reminderTomorrow: "It's tomorrow! You have saved:",
+    badgeToday: 'Today', badgeTomorrow: 'Tomorrow',
+    chipFree: 'Free', chipIndoor: 'Indoor', chipOutdoor: 'Outdoor',
+    filtrosTitle: 'Filters', fpWhere: 'where', fpActivityType: 'activity type', fpDate: 'date',
+    cityComingSoon: "We're still preparing content for {city}. Check back soon!",
+    profileNotifTitle: 'Notifications', profileNotifText: 'This option lets the app send a reminder 1 day and 2 hours before a saved event.',
+    legalText1: 'This app only gathers and organises information about activities and events for children. <b>It does not organise, produce, or take responsibility for any of the events or activities listed.</b>',
+    legalText2: 'While we try to keep information as up to date as possible, we recommend you <b>always confirm details directly with the organiser</b> (times, prices, bookings, cancellations, etc.). Final responsibility for how each event runs and its conditions rests entirely with its organiser.',
+  },
+};
+function t(key) { return T[state.lang][key]; }
+
+/* ===================== STATE ===================== */
+const state = {
+  tab: 'home',
+  city: localStorage.getItem('pf_city') || 'porto',
+  cityMenuOpen: false,
+  filtersOpen: false,
+  ageStepper: null, // { index: number|null, value: number } | null
+  search: '',
+  exploreView: 'list', // list | map
+  cats: new Set(),
+  dateMode: 'all', // all | today | weekend | custom
+  customDate: null, // 'YYYY-MM-DD'
+  freeOnly: false,
+  locationFilter: 'all', // all | indoor | outdoor
+  childAges: JSON.parse(localStorage.getItem('pf_child_ages') || '[]'), // array of numbers (years)
+  lang: localStorage.getItem('pf_lang') || 'pt', // pt | en
+  saved: new Set(JSON.parse(localStorage.getItem('pf_saved') || '[]')),
+  notifOptIn: JSON.parse(localStorage.getItem('pf_notif_opt_in') || 'null'), // null | true | false
+};
+
+function persistSaved() {
+  localStorage.setItem('pf_saved', JSON.stringify([...state.saved]));
+}
+function persistChildAges() {
+  localStorage.setItem('pf_child_ages', JSON.stringify(state.childAges));
+}
+function persistCity() {
+  localStorage.setItem('pf_city', state.city);
+}
+function persistNotifOptIn() {
+  localStorage.setItem('pf_notif_opt_in', JSON.stringify(state.notifOptIn));
+}
+function setLang(lang) {
+  state.lang = lang;
+  localStorage.setItem('pf_lang', lang);
+  document.documentElement.lang = lang;
+  render();
+}
+
+/* ===================== DATE HELPERS ===================== */
+function todayMidnight() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+// Does event ev cover calendar day `target` (a Date at midnight)?
+function coversDay(ev, target) {
+  if (ev.ongoing) return true;
+  const t = target.getTime();
+  if (ev.dateStart && ev.dateEnd) {
+    return t >= new Date(ev.dateStart + 'T00:00:00').getTime() && t <= new Date(ev.dateEnd + 'T00:00:00').getTime();
+  }
+  if (ev.date) {
+    return new Date(ev.date + 'T00:00:00').getTime() === t;
+  }
+  return true;
+}
+// Dated events that finished before today quietly drop out of every view (ongoing ones never do).
+function isPastEvent(ev) {
+  if (ev.ongoing) return false;
+  const endStr = ev.dateEnd || ev.date;
+  if (!endStr) return false;
+  return new Date(endStr + 'T00:00:00').getTime() < todayMidnight().getTime();
+}
+function matchesDate(ev) {
+  const today = todayMidnight();
+  switch (state.dateMode) {
+    case 'all': return true;
+    case 'today': return coversDay(ev, today);
+    case 'weekend': {
+      const day = today.getDay(); // 0 Sun .. 6 Sat
+      const satOffset = day === 6 ? 0 : (6 - day + 7) % 7;
+      const sunOffset = day === 0 ? 0 : (7 - day) % 7;
+      return coversDay(ev, addDays(today, satOffset)) || coversDay(ev, addDays(today, sunOffset));
+    }
+    case 'custom':
+      if (!state.customDate) return true;
+      return coversDay(ev, new Date(state.customDate + 'T00:00:00'));
+    default: return true;
+  }
+}
+
+/* ===================== FILTER LOGIC ===================== */
+// With no children set, no age filtering happens (kids + adult events both show).
+// With one or more children set, an event matches if it's a good fit for at
+// least one of them (its age range overlaps that child's age).
+function ageMatches(ev) {
+  if (!state.childAges.length) return true;
+  const lo = typeof ev.ageMin === 'number' ? ev.ageMin : 0;
+  const hi = typeof ev.ageMax === 'number' ? ev.ageMax : Infinity;
+  return state.childAges.some(age => age >= lo && age <= hi);
+}
+function matches(ev) {
+  if (ev.city !== state.city) return false;
+  if (isPastEvent(ev)) return false;
+  if (!ageMatches(ev)) return false;
+  if (state.cats.size && !state.cats.has(ev.cat)) return false;
+  // Only events we've confirmed are free are shown here — unconfirmed pricing
+  // never gets labelled "free" just to fill out the filter.
+  if (state.freeOnly && ev.free !== true) return false;
+  if (state.locationFilter === 'indoor' && ev.indoor !== true) return false;
+  if (state.locationFilter === 'outdoor' && ev.indoor !== false) return false;
+  if (!matchesDate(ev)) return false;
+  if (state.search.trim()) {
+    const q = state.search.trim().toLowerCase();
+    const hay = `${ev.title} ${ev.title_en || ''} ${ev.venue}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+/* ===================== RENDER ===================== */
+const contentEl = document.getElementById('content');
+const filterBarEl = document.getElementById('filterControls');
+let exploreLeafletMap = null;
+
+/* ---------- header: city switcher + language ribbon ---------- */
+function renderCityMenu() {
+  const menu = document.getElementById('cityMenu');
+  menu.style.display = state.cityMenuOpen ? 'block' : 'none';
+  if (!state.cityMenuOpen) return;
+  menu.innerHTML = CITIES.map(c => `
+    <button data-city="${c.key}">
+      <span class="city-radio ${state.city === c.key ? 'on' : ''}"></span>${cityName(c)}
+    </button>
+  `).join('');
+  menu.querySelectorAll('[data-city]').forEach(btn => {
+    btn.onclick = () => {
+      state.city = btn.dataset.city;
+      persistCity();
+      state.cityMenuOpen = false;
+      render();
+    };
+  });
+}
+function renderHeader() {
+  document.getElementById('cityPillLabel').textContent = cityName(currentCity());
+  document.getElementById('cityPillBtn').classList.toggle('open', state.cityMenuOpen);
+  document.getElementById('cityPillBtn').onclick = () => { state.cityMenuOpen = !state.cityMenuOpen; render(); };
+  renderCityMenu();
+  document.querySelector('#langRibbon span').textContent = state.lang.toUpperCase();
+  document.getElementById('langRibbon').onclick = () => setLang(state.lang === 'en' ? 'pt' : 'en');
+}
+document.addEventListener('click', (e) => {
+  if (state.cityMenuOpen && !e.target.closest('#cityPillWrap')) { state.cityMenuOpen = false; render(); }
+});
+
+/* ---------- active filter chips + filter overlay panel ---------- */
+function activeFilterList() {
+  const items = [];
+  state.childAges.forEach((age, i) => {
+    const unit = state.lang === 'en' ? (age === 1 ? 'yr' : 'yrs') : (age === 1 ? 'ano' : 'anos');
+    items.push({ label: `${age} ${unit}`, remove: () => { state.childAges.splice(i, 1); persistChildAges(); } });
+  });
+  if (state.locationFilter !== 'all') {
+    items.push({ label: state.locationFilter === 'indoor' ? t('chipIndoor') : t('chipOutdoor'), remove: () => { state.locationFilter = 'all'; } });
+  }
+  state.cats.forEach(catKey => {
+    const c = CATEGORIES.find(x => x.key === catKey);
+    items.push({ label: c ? catLabel(c) : catKey, remove: () => { state.cats.delete(catKey); } });
+  });
+  if (state.dateMode !== 'all') {
+    items.push({ label: dateFilterLabel(), remove: () => { state.dateMode = 'all'; state.customDate = null; } });
+  }
+  if (state.freeOnly) {
+    items.push({ label: t('chipFree'), remove: () => { state.freeOnly = false; } });
+  }
+  return items;
+}
+function activeFilterCount() { return activeFilterList().length; }
+
+function renderActiveChips() {
+  const wrap = document.getElementById('activeChips');
+  const items = activeFilterList();
+  if (!items.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = items.map((it, i) => `<span class="active-chip ${i % 2 ? 'b' : 'a'}">${it.label}<button data-chip-remove="${i}">×</button></span>`).join('');
+  wrap.querySelectorAll('[data-chip-remove]').forEach(btn => {
+    btn.onclick = () => { items[Number(btn.dataset.chipRemove)].remove(); render(); };
+  });
+}
+
+function renderFilterPanel() {
+  const backdrop = document.getElementById('filterOverlayBackdrop');
+  backdrop.classList.toggle('open', state.filtersOpen);
+  backdrop.onclick = (e) => { if (e.target === backdrop) { state.filtersOpen = false; render(); } };
+  if (!state.filtersOpen) return;
+  const panel = document.getElementById('filterPanel');
+  const sorted = state.childAges.slice().sort((a, b) => a - b);
+  const unit = n => state.lang === 'en' ? (n === 1 ? 'yr' : 'yrs') : (n === 1 ? 'ano' : 'anos');
+  panel.innerHTML = `
+    <button class="fp-close" id="fpClose">✕</button>
+    <div class="filter-panel-title">☰ ${t('filtrosTitle')}</div>
+    <div class="fp-section">
+      <div class="fp-label">${t('ageFilterLabel').toLowerCase()}</div>
+      <div class="fp-row">
+        ${sorted.map(age => `<button class="fp-pill on" data-edit-age="${state.childAges.indexOf(age)}">${age} ${unit(age)}</button>`).join('')}
+        <button class="fp-add-circle" id="fpAddAge" aria-label="${t('ageFilterAdd')}">+</button>
+      </div>
+    </div>
+    <div class="fp-section">
+      <div class="fp-label">${t('fpWhere')}</div>
+      <div class="fp-row">
+        <button class="fp-pill orange ${state.locationFilter === 'indoor' ? 'on' : ''}" data-loc="indoor">${t('chipIndoor')}</button>
+        <button class="fp-pill orange ${state.locationFilter === 'outdoor' ? 'on' : ''}" data-loc="outdoor">${t('chipOutdoor')}</button>
+      </div>
+    </div>
+    <div class="fp-section">
+      <div class="fp-label">${t('fpActivityType')}</div>
+      <div class="fp-row">
+        ${CATEGORIES.map(c => `<button class="fp-pill yellow ${state.cats.has(c.key) ? 'on' : ''}" data-cat="${c.key}">${catLabel(c)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="fp-section">
+      <div class="fp-label">${t('fpDate')}</div>
+      <div class="fp-row">
+        <button class="fp-pill ${state.dateMode === 'today' ? 'on' : ''}" data-date="today">${t('dateToday')}</button>
+        <button class="fp-pill ${state.dateMode === 'weekend' ? 'on' : ''}" data-date="weekend">${t('dateWeekend')}</button>
+        <button class="fp-pill ${state.dateMode === 'custom' ? 'on' : ''}" id="fpCustomDate">📅</button>
+      </div>
+      ${state.dateMode === 'custom' ? `<input type="date" id="fpCustomDateInput" class="date-input" style="margin-top:8px;" value="${state.customDate || ''}">` : ''}
+    </div>
+    <div class="fp-section">
+      <div class="fp-row">
+        <button class="fp-pill ${state.freeOnly ? 'on' : ''}" id="fpFree">🆓 ${t('chipFree')}</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('fpClose').onclick = () => { state.filtersOpen = false; render(); };
+  panel.querySelectorAll('[data-edit-age]').forEach(btn => { btn.onclick = () => openAgeStepper(Number(btn.dataset.editAge)); });
+  document.getElementById('fpAddAge').onclick = () => openAgeStepper(null);
+  panel.querySelectorAll('[data-loc]').forEach(btn => {
+    btn.onclick = () => { state.locationFilter = state.locationFilter === btn.dataset.loc ? 'all' : btn.dataset.loc; render(); };
+  });
+  panel.querySelectorAll('[data-cat]').forEach(btn => {
+    btn.onclick = () => { const k = btn.dataset.cat; if (state.cats.has(k)) state.cats.delete(k); else state.cats.add(k); render(); };
+  });
+  panel.querySelectorAll('[data-date]').forEach(btn => {
+    btn.onclick = () => { const k = btn.dataset.date; state.dateMode = state.dateMode === k ? 'all' : k; render(); };
+  });
+  const fpCustomDate = document.getElementById('fpCustomDate');
+  if (fpCustomDate) fpCustomDate.onclick = () => { state.dateMode = 'custom'; render(); };
+  const fpCustomDateInput = document.getElementById('fpCustomDateInput');
+  if (fpCustomDateInput) fpCustomDateInput.onchange = (e) => { state.customDate = e.target.value; render(); };
+  const fpFree = document.getElementById('fpFree');
+  if (fpFree) fpFree.onclick = () => { state.freeOnly = !state.freeOnly; render(); };
+}
+
+/* ---------- age stepper modal ---------- */
+function openAgeStepper(index) {
+  const value = index === null || index === -1 ? 0 : state.childAges[index];
+  state.ageStepper = { index: (index === null || index === -1) ? null : index, value };
+  render();
+}
+function renderAgeStepper() {
+  const backdrop = document.getElementById('stepperBackdrop');
+  backdrop.classList.toggle('open', !!state.ageStepper);
+  backdrop.onclick = (e) => { if (e.target === backdrop) { state.ageStepper = null; render(); } };
+  if (!state.ageStepper) return;
+  const card = document.getElementById('stepperCard');
+  const { value, index } = state.ageStepper;
+  card.innerHTML = `
+    <div class="stepper-handle"></div>
+    <div class="stepper-title">${t('ageFilterLabel').toLowerCase()}</div>
+    <div class="stepper-controls">
+      <button class="stepper-btn" id="stepMinus">−</button>
+      <div class="stepper-value">${value}</div>
+      <button class="stepper-btn" id="stepPlus">+</button>
+    </div>
+    <button class="stepper-confirm" id="stepConfirm">✓</button>
+    ${index !== null ? `<div><button class="stepper-remove" id="stepRemove">🗑 ${t('ageFilterAdd') ? '' : ''}×</button></div>` : ''}
+  `;
+  document.getElementById('stepMinus').onclick = () => { state.ageStepper.value = Math.max(0, state.ageStepper.value - 1); render(); };
+  document.getElementById('stepPlus').onclick = () => { state.ageStepper.value = Math.min(18, state.ageStepper.value + 1); render(); };
+  document.getElementById('stepConfirm').onclick = () => {
+    const { index, value } = state.ageStepper;
+    if (index === null) { state.childAges.push(value); } else { state.childAges[index] = value; }
+    persistChildAges();
+    state.ageStepper = null;
+    render();
+  };
+  const removeBtn = document.getElementById('stepRemove');
+  if (removeBtn) removeBtn.onclick = () => { state.childAges.splice(index, 1); persistChildAges(); state.ageStepper = null; render(); };
+}
+
+function dateFilterLabel() {
+  switch (state.dateMode) {
+    case 'today': return t('dateToday');
+    case 'weekend': return t('dateWeekendLabel');
+    case 'custom': return state.customDate ? formatDate(state.customDate) : t('datePick');
+    default: return t('dateAllLabel');
+  }
+}
+
+function tagsHtml(ev) {
+  const audTag = ev.audience === 'adults'
+    ? `<span class="tag adults">${t('tagAdults')}</span>`
+    : `<span class="tag kids">${evAges(ev) || t('tagKidsFallback')}</span>`;
+  const catObj = CATEGORIES.find(c => c.key === ev.cat);
+  return `${audTag}<span class="tag cat">${catObj ? catLabel(catObj) : ev.cat}</span>`;
+}
+
+// Saved-event reminders: a lightweight, in-app-only nudge (no push/backend) —
+// events with a specific date show a badge when they land today or tomorrow.
+function eventHappensOn(ev, day) {
+  if (ev.ongoing) return false;
+  return coversDay(ev, day);
+}
+function reminderBadgeFor(ev) {
+  const today = todayMidnight();
+  if (eventHappensOn(ev, today)) return 'today';
+  if (eventHappensOn(ev, addDays(today, 1))) return 'tomorrow';
+  return null;
+}
+function savedReminders() {
+  const today = todayMidnight();
+  const tomorrow = addDays(today, 1);
+  const savedEvents = EVENTS.filter(ev => state.saved.has(ev.id) && !isPastEvent(ev));
+  return {
+    todayList: savedEvents.filter(ev => eventHappensOn(ev, today)),
+    tomorrowList: savedEvents.filter(ev => eventHappensOn(ev, tomorrow)),
+  };
+}
+
+function cardHtml(ev) {
+  const isSaved = state.saved.has(ev.id);
+  const badge = reminderBadgeFor(ev);
+  const badgeHtml = badge ? `<span class="badge-soon">${badge === 'today' ? t('badgeToday') : t('badgeTomorrow')}</span>` : '';
+  return `
+    <div class="card" data-id="${ev.id}">
+      <div class="thumb">${ev.icon}</div>
+      <div class="card-body">
+        <div class="card-title">${evTitle(ev)}</div>
+        <div class="card-meta">${ev.venue} · ${evWhen(ev)}</div>
+        <div class="card-tags">${badgeHtml}${tagsHtml(ev)}</div>
+      </div>
+      <button class="heart ${isSaved ? 'on' : ''}" data-save="${ev.id}">${isSaved ? '♥' : '♡'}</button>
+    </div>
+  `;
+}
+
+function attachCardHandlers(root) {
+  root.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.heart')) return;
+      openDetail(Number(card.dataset.id));
+    });
+  });
+  root.querySelectorAll('[data-save]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = Number(btn.dataset.save);
+      if (state.saved.has(id)) state.saved.delete(id); else state.saved.add(id);
+      persistSaved();
+      render();
+    });
+  });
+}
+
+function comingSoonHtml() {
+  const name = cityName(currentCity());
+  return `<div class="empty">🚧 ${t('cityComingSoon').replace('{city}', name)}</div>`;
+}
+
+function renderHome() {
+  filterBarEl.style.display = '';
+  if (!cityHasContent(state.city)) {
+    contentEl.innerHTML = comingSoonHtml();
+    return;
+  }
+  const list = EVENTS.filter(matches);
+  const toggleHtml = `
+    <div class="seg" id="exploreViewToggle">
+      <button data-view="list" class="${state.exploreView !== 'map' ? 'on' : ''}">☰ ${t('viewList')}</button>
+      <button data-view="map" class="${state.exploreView === 'map' ? 'on' : ''}">📍 ${t('viewMap')}</button>
+    </div>
+  `;
+
+  if (state.exploreView === 'map') {
+    contentEl.innerHTML = `${toggleHtml}<div class="map-wrap"><div id="exploreMap"></div></div>`;
+    wireExploreViewToggle();
+    renderExploreMap(list);
+    return;
+  }
+
+  if (!list.length) {
+    contentEl.innerHTML = `${toggleHtml}<div class="section-label">${dateFilterLabel()}</div><div class="empty">${t('emptyFilters')}<br>${t('emptyFiltersHint')}</div>`;
+    wireExploreViewToggle();
+    return;
+  }
+  contentEl.innerHTML = `${toggleHtml}<div class="section-label">${dateFilterLabel()}</div><div class="list">${list.map(cardHtml).join('')}</div>`;
+  wireExploreViewToggle();
+  attachCardHandlers(contentEl);
+}
+
+function wireExploreViewToggle() {
+  const toggle = document.getElementById('exploreViewToggle');
+  if (!toggle) return;
+  toggle.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.exploreView === btn.dataset.view) return;
+      state.exploreView = btn.dataset.view;
+      render();
+    });
+  });
+}
+
+function renderExploreMap(list) {
+  const container = document.getElementById('exploreMap');
+  if (!container) return;
+  if (typeof L === 'undefined') {
+    container.outerHTML = `<div class="empty">${t('mapUnavailable')}</div>`;
+    return;
+  }
+  if (exploreLeafletMap) {
+    exploreLeafletMap.remove();
+    exploreLeafletMap = null;
+  }
+  const map = L.map(container, { scrollWheelZoom: false }).setView([41.1579, -8.6291], 12.5);
+  exploreLeafletMap = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors',
+  }).addTo(map);
+
+  const pinned = list.filter(ev => typeof ev.lat === 'number' && typeof ev.lng === 'number');
+  const markers = [];
+  pinned.forEach(ev => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="pf-pin cat-${ev.cat}"><span>${ev.icon}</span></div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 34],
+      popupAnchor: [0, -32],
+    });
+    const marker = L.marker([ev.lat, ev.lng], { icon }).addTo(map);
+    marker.bindPopup(`
+      <div class="map-popup">
+        <div class="mp-title">${ev.icon} ${evTitle(ev)}</div>
+        <div class="mp-meta">${ev.venue}<br>${evWhen(ev)}</div>
+        <button data-open="${ev.id}">${t('viewDetails')}</button>
+      </div>
+    `);
+    markers.push(marker);
+  });
+  map.on('popupopen', (e) => {
+    const btn = e.popup.getElement().querySelector('[data-open]');
+    if (btn) btn.addEventListener('click', () => openDetail(Number(btn.dataset.open)));
+  });
+  if (markers.length) {
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.2), { maxZoom: 15 });
+  }
+  setTimeout(() => map.invalidateSize(), 50);
+}
+
+function renderSaved() {
+  filterBarEl.style.display = 'none';
+  const list = EVENTS.filter(ev => state.saved.has(ev.id));
+  if (!list.length) {
+    contentEl.innerHTML = `<div class="empty">${t('emptySaved')}<br>${t('emptySavedHint')}</div>`;
+    return;
+  }
+  contentEl.innerHTML = `<div class="section-label">${t('savedLabel')}</div><div class="list">${list.map(cardHtml).join('')}</div>`;
+  attachCardHandlers(contentEl);
+}
+
+function renderProfile() {
+  filterBarEl.style.display = 'none';
+  contentEl.innerHTML = `
+    <div class="profile-card solid">
+      <h3>${t('profileAboutTitle')}</h3>
+      <p>${t('profileAboutText')}</p>
+    </div>
+    <div class="profile-card">
+      <h3>${t('profileSuggestTitle')}</h3>
+      <p>${t('profileSuggestText')}</p>
+      <a class="btn primary" href="mailto:hello@example.com?subject=Sugest%C3%A3o%20de%20evento">${t('profileSuggestBtn')}</a>
+    </div>
+    <div class="profile-card">
+      <h3>${t('profileNotifTitle')}</h3>
+      <p>${t('profileNotifText')}</p>
+      <div class="notif-toggle">
+        <button class="yes ${state.notifOptIn === true ? '' : 'dim'}" id="notifYes" aria-label="yes">✓</button>
+        <button class="no ${state.notifOptIn === false ? '' : 'dim'}" id="notifNo" aria-label="no">✕</button>
+      </div>
+    </div>
+    <div class="profile-card">
+      <h3>${t('profileLangTitle')}</h3>
+      <div class="lang-toggle">
+        <button id="langPt" class="${state.lang === 'pt' ? 'on' : ''}">Português</button>
+        <button id="langEn" class="${state.lang === 'en' ? 'on' : ''}">English</button>
+      </div>
+    </div>
+    <div class="profile-card legal">
+      <p>${t('legalText1')}</p>
+      <p>${t('legalText2')}</p>
+    </div>
+  `;
+  document.getElementById('langPt').onclick = () => setLang('pt');
+  document.getElementById('langEn').onclick = () => setLang('en');
+  document.getElementById('notifYes').onclick = () => { state.notifOptIn = true; persistNotifOptIn(); render(); };
+  document.getElementById('notifNo').onclick = () => { state.notifOptIn = false; persistNotifOptIn(); render(); };
+}
+
+function render() {
+  document.getElementById('searchInput').placeholder = t('searchPlaceholder');
+  renderHeader();
+  const filtrosBadge = activeFilterCount();
+  document.getElementById('filtrosBtn').innerHTML = `☰${filtrosBadge ? `<span class="count">${filtrosBadge}</span>` : ''}`;
+  document.getElementById('filtrosBtn').onclick = () => { state.filtersOpen = !state.filtersOpen; render(); };
+  document.querySelector('.navitem[data-tab="home"]').innerHTML = `<span class="ic">🏠</span>${t('navHome')}`;
+  document.querySelector('.navitem[data-tab="saved"]').innerHTML = `<span class="ic">♥</span>${t('navSaved')}`;
+  document.querySelector('.navitem[data-tab="profile"]').innerHTML = `<span class="ic">👤</span>${t('navProfile')}`;
+  document.querySelector('#installBanner span').textContent = t('installText');
+  document.getElementById('installBtn').textContent = t('installBtn');
+
+  const reminderBanner = document.getElementById('reminderBanner');
+  if ((state.tab === 'home' || state.tab === 'saved') && state.notifOptIn !== false) {
+    const { todayList, tomorrowList } = savedReminders();
+    const list = todayList.length ? todayList : tomorrowList;
+    if (list.length) {
+      const label = todayList.length ? t('reminderToday') : t('reminderTomorrow');
+      reminderBanner.innerHTML = `<span>⏰</span><span>${label} ${list.map(evTitle).join(', ')}</span>`;
+      reminderBanner.classList.add('show');
+    } else {
+      reminderBanner.classList.remove('show');
+    }
+  } else {
+    reminderBanner.classList.remove('show');
+  }
+
+  if (state.tab === 'home') renderHome();
+  else if (state.tab === 'saved') renderSaved();
+  else if (state.tab === 'profile') renderProfile();
+
+  renderActiveChips();
+  renderFilterPanel();
+  renderAgeStepper();
+
+  document.querySelectorAll('.navitem').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === state.tab);
+  });
+}
+
+/* ===================== DETAIL MODAL ===================== */
+const backdrop = document.getElementById('modalBackdrop');
+const modalEl = document.getElementById('modal');
+
+function openDetail(id) {
+  const ev = EVENTS.find(e => e.id === id);
+  if (!ev) return;
+  const isSaved = state.saved.has(ev.id);
+  modalEl.innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="m-thumb">
+      ${ev.icon}
+      <button class="heart ${isSaved ? 'on' : ''}" id="modalSave">${isSaved ? '♥' : '♡'}</button>
+    </div>
+    <h2>${evTitle(ev)}</h2>
+    <div class="m-meta"><span class="pin">📍</span> ${ev.venue}<br>${evWhen(ev)}</div>
+    <div class="m-tags">${tagsHtml(ev)}</div>
+    <div class="m-desc">${evDesc(ev)}</div>
+    <div class="m-actions">
+      ${ev.source ? `<a class="btn primary" href="${ev.source}" target="_blank" rel="noopener">${t('viewSource')}</a>` : `<button class="btn primary" disabled style="opacity:.5">${t('noSourceLink')}</button>`}
+    </div>
+  `;
+  backdrop.classList.add('open');
+  document.getElementById('modalSave').onclick = () => {
+    if (state.saved.has(ev.id)) state.saved.delete(ev.id); else state.saved.add(ev.id);
+    persistSaved();
+    closeDetail();
+    render();
+  };
+}
+function closeDetail() { backdrop.classList.remove('open'); }
+backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeDetail(); });
+
+/* ===================== EVENTS ===================== */
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  state.search = e.target.value;
+  render();
+});
+document.querySelectorAll('.navitem').forEach(btn => {
+  btn.addEventListener('click', () => { state.tab = btn.dataset.tab; render(); });
+});
+
+/* ===================== INSTALL PROMPT ===================== */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').classList.remove('show');
+});
+
+/* ===================== SERVICE WORKER ===================== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+
+/* ===================== INIT ===================== */
+render();
+</script>
+</body>
+</html>
